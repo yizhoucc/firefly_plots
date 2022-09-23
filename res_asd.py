@@ -11,7 +11,6 @@ from sklearn import svm
 import numpy as np
 import os
 import pandas as pd
-os.chdir(r"C:\Users\24455\iCloudDrive\misc\ffsb")
 import numpy as np
 from cmaes import CMA
 import copy
@@ -31,7 +30,7 @@ from numpy import linspace, pi
 from InverseFuncs import *
 from monkey_functions import *
 from firefly_task import ffacc_real
-from Config import Config
+from env_config import Config
 # from cma_mpi_helper import run
 import ray
 from pathlib import Path
@@ -39,8 +38,10 @@ arg = Config()
 import os
 from timeit import default_timer as timer
 
-# ASD theta bar ------------------------
-logls=['Z:/human/fixragroup','Z:/human/clusterpaperhgroup']
+
+
+# ASD theta bar (not in use) --------------------------------------------
+logls=['/data/human/fixragroup','/data/human/clusterpaperhgroup']
 monkeynames=['ASD', 'Ctrl' ]
 mus,covs,errs=[],[],[]
 for inv in logls:
@@ -56,14 +57,15 @@ ax.get_figure()
 
 
 
+
 # % behavioral small gain prior, and we confirmed it ------------------------
 
 # load human without feedback data
-datapath=Path("Z:/human/wohgroup")
+datapath=Path("/data/human/wohgroup")
 with open(datapath, 'rb') as f:
     hstates, hactions, htasks = pickle.load(f)
 
-datapath=Path("Z:/human/woagroup")
+datapath=Path("/data/human/woagroup")
 with open(datapath, 'rb') as f:
     astates, aactions, atasks = pickle.load(f)
 # get the side tasks (stright trials do not have curvature)
@@ -135,15 +137,15 @@ with initiate_plot(4,2,300) as f:
 
 
 # per subject behavior ------------------------
-datapath=Path("Z:/human/hgroup")
+datapath=Path("/data/human/hgroup")
 with open(datapath, 'rb') as f:
     hstates, hactions, htasks = pickle.load(f)
 
-datapath=Path("Z:/human/agroup")
+datapath=Path("/data/human/agroup")
 with open(datapath, 'rb') as f:
     astates, aactions, atasks = pickle.load(f)
 
-filename='Z:/human/fbsimple.mat'
+filename='/data/human/fbsimple.mat'
 data=loadmat(filename)
 
 # seperate into two groups
@@ -164,17 +166,17 @@ acumsum=np.cumsum(asublen)
 # load inv data
 numhsub,numasub=25,14
 foldername='persub1cont'
-logs={'a':'Z:/human/fixragroup','h':'Z:/human/clusterpaperhgroup'}
+logs={'a':'/data/human/fixragroup','h':'/data/human/clusterpaperhgroup'}
 
 invres={'a':[],'h':[]}
 for isub in range(numhsub):
     dataname="hsub{}".format(str(isub))
-    savename=Path("Z:/human/{}".format(foldername))/"invhsub{}".format(str(isub))
+    savename=Path("/data/human/{}".format(foldername))/"invhsub{}".format(str(isub))
     if savename.is_file():
         invres['h'].append(process_inv(savename,ind=31, usingbest=True))
 for isub in range(numasub):
     dataname="asub{}".format(str(isub))
-    savename=Path("Z:/human/{}".format(foldername))/"invasub{}".format(str(isub))
+    savename=Path("/data/human/{}".format(foldername))/"invasub{}".format(str(isub))
     if savename.is_file():
         invres['a'].append(process_inv(savename,ind=31, usingbest=True))
 
@@ -352,7 +354,7 @@ agent_=TD3.load('trained_agent/paper.zip')
 agent=agent_.actor.mu.cpu()
 
 # define the midpoint between ASD and healthy 
-logls=['Z:/human/fixragroup','Z:/human/clusterpaperhgroup']
+logls=['/data/human/fixragroup','/data/human/clusterpaperhgroup']
 monkeynames=['ASD', 'Ctrl' ]
 
 mus,covs,errs=[],[],[]
@@ -458,3 +460,212 @@ with initiate_plot(3,3,300) as f:
     quickspine(ax)
 
     quicksave('gray logll obs prediction vs obs with label')
+
+
+
+# added 9/12, short long validation --------------------
+# load theta infered for short trials
+
+numhsub,numasub=25,14
+logs={'a':'/data/human/fixragroup','h':'/data/human/clusterpaperhgroup'}
+
+# full inverse
+foldername='persub1cont'
+invres={'a':[],'h':[]}
+for isub in range(numhsub):
+    dataname="hsub{}".format(str(isub))
+    savename=Path("/data/human/{}".format(foldername))/"invhsub{}".format(str(isub))
+    if savename.is_file():
+        invres['h'].append(process_inv(savename,ind=31, usingbest=True))
+for isub in range(numasub):
+    dataname="asub{}".format(str(isub))
+    savename=Path("/data/human/{}".format(foldername))/"invasub{}".format(str(isub))
+    if savename.is_file():
+        invres['a'].append(process_inv(savename,ind=31, usingbest=True))
+
+# short inverse
+foldername='persubshort3of4'
+invres['ashort']=[]
+invres['hshort']=[]
+for isub in range(numhsub):
+    dataname="hsub{}".format(str(isub))
+    savename=Path("/data/human/{}".format(foldername))/"invhsub{}".format(str(isub))
+    if savename.is_file():
+        invres['hshort'].append(process_inv(savename,ind=31, usingbest=True))
+for isub in range(numasub):
+    dataname="asub{}".format(str(isub))
+    savename=Path("/data/human/{}".format(foldername))/"invasub{}".format(str(isub))
+    if savename.is_file():
+        invres['ashort'].append(process_inv(savename,ind=31, usingbest=True))
+
+fullinvh=[log[0] for log in invres['h']]
+shortinvh=[log[0] for log in invres['hshort']]
+
+plt.plot([theta[0] for theta in fullinvh])
+plt.plot([theta[0] for theta in shortinvh])
+
+
+# overhead of example trial -----------------------------------------------------------\
+
+env=ffacc_real.FireFlyPaper(arg)
+env.debug=True
+env.terminal_vel=0.05
+agent_=TD3.load('trained_agent/paper.zip')
+agent=agent_.actor.mu.cpu()
+
+
+# load data 
+asd_data_set={}
+fulltrainfolder='persub1cont'
+parttrainfolder='persubshort3of4'
+for invtag in ['h','a']:
+    for isub in range(numhsub):
+        thesub="{}sub{}".format(invtag,str(isub))
+        trainname=Path("/data/human/{}/inv{}sub{}".format(foldername,invtag,str(isub)))
+        evalname=Path("/data/human/{}/eval_inv{}sub{}".format(foldername,invtag,str(isub)))
+        fullinverseres=Path("/data/human/{}".format(fulltrainfolder))/"invhsub{}".format(str(isub))
+        partinverseres=Path("/data/human/{}".format(fulltrainfolder))/"invhsub{}".format(str(isub))
+        # load inv res
+        if partinverseres.is_file():
+            asd_data_set['partres'+thesub]=process_inv(partinverseres, usingbest=True, removegr=False)
+        # if fullinverseres.is_file():
+            asd_data_set['res'+thesub]=process_inv(fullinverseres, usingbest=True, removegr=False)
+        # load data
+        if Path('/data/human/{}'.format(thesub)).is_file():
+            with open('/data/human/{}'.format(thesub), 'rb') as f:
+                states, actions, tasks = pickle.load(f)
+            print(len(states))
+            asd_data_set['data'+thesub]=states, actions, tasks
+        # load test logll
+        if evalname.is_file():
+            with open(evalname, 'rb') as f:
+                a = pickle.load(f)
+                asd_data_set['trainlogll'+thesub] = a[-1][0]
+                asd_data_set['testlogll'+thesub] = a[-1][1]
+
+thesub='hsub9'
+states, actions, tasks = asd_data_set['data'+thesub]
+
+# select long trials (test set)
+taskdist=np.array([np.linalg.norm(x) for x in tasks])
+distsortind=np.argsort(taskdist)
+testind=distsortind[int(len(distsortind)*3/4):]
+states, actions, tasks = [states[t] for t in testind], [actions[t] for t in testind], tasks[testind]
+
+ind=np.random.randint(low=0, high=len(tasks))
+thetask=tasks[ind]
+indls=similar_trials2this(tasks, thetask, ntrial=3)
+
+substates=[states[i] for i in indls]
+subactions=[actions[i] for i in indls]
+subtasks=np.array(tasks)[indls]
+
+# run trial with model (fully trained) ---------------------------
+ax=plotoverhead_simple(substates,thetask,color='b',label=thesub,ax=None)
+modelstates,modelactions=run_trials_multitask(agent, env, phi, asd_data_set['res'+thesub][0], subtasks, ntrials=1)
+T=max([len(s) for s in substates])
+modelstates=[m[:T] for m in modelstates]
+
+# plot overhead
+ax=plotoverhead_simple(modelstates,thetask,color='r',label='model',ax=ax)
+ax.get_figure()
+# quicksave('{} model vs data overhead'.format(thesub),fig=ax.get_figure())
+
+# plot control curve 
+fig=plotctrl_vs(subactions, modelactions, color1='b', color2='r', label1=thesub, label2='model', alpha=1)
+# quicksave('{} model vs data control curve '.format(thesub),fig=fig)
+
+
+# run trial with model (part trained for test) ---------------------------
+ax=plotoverhead_simple(substates,thetask,color='b',label=thesub,ax=None)
+# run trial with model 
+modelstates,modelactions=run_trials_multitask(agent, env, phi, asd_data_set['partres'+thesub][0], subtasks, ntrials=1)
+T=max([len(s) for s in substates])
+modelstates=[m[:T] for m in modelstates]
+
+# plot overhead
+ax=plotoverhead_simple(modelstates,thetask,color='r',label='model',ax=ax)
+ax.get_figure()
+# quicksave('{} model vs data overhead testset'.format(thesub),fig=ax.get_figure())
+
+# plot control curve 
+fig=plotctrl_vs(subactions, modelactions, color1='b', color2='r', label1=thesub, label2='model', alpha=1)
+# quicksave('{} model vs data control curve testset'.format(thesub),fig=fig)
+
+
+
+
+# compare validation logll and test logll -----------------------------------------------
+trainloglls=[]
+testloglls=[]
+subnames=[]
+foldername='persubshort3of4'
+for invtag in ['h','a']:
+    for isub in range(numhsub):
+        thesub="{}sub{}".format(invtag,str(isub))
+        if 'trainlogll'+thesub in asd_data_set:
+            trainloglls.append(asd_data_set['trainlogll'+thesub] )
+            testloglls.append(asd_data_set['testlogll'+thesub] )
+            subnames.append(thesub)
+
+for trainlogll, testlogll, thesub in zip(trainloglls,testloglls,subnames):
+    with initiate_plot(2,2,300) as fig:
+        ax=fig.add_subplot(111)
+        ax.hist(trainlogll, color='b', label='training data', bins=30, density=True)
+        ax.hist(testlogll,  color='r', label='testing data', bins=30, density=True)
+        quickspine(ax)
+        ax.set_xlabel('– log likelihood')
+        ax.set_ylabel('probability')
+        ax.set_title(thesub)
+        quickleg(ax)
+
+        # quicksave('eval logll hist {}'.format(thesub))
+
+# style 1, all together
+with initiate_plot(2,2,300) as fig:
+    ax=fig.add_subplot(111)
+    for trainlogll, testlogll, thesub in zip(trainloglls,testloglls,subnames):
+        ax.scatter(np.zeros_like(trainlogll),trainlogll, color='b', label='each subject log likelihood')
+        ax.scatter(np.ones_like(testlogll),testlogll, color='r', label='each subject log likelihood ')
+        lines=np.vstack([sorted(trainlogll),sorted(testlogll)])
+        ax.plot(lines, color='yellow', alpha=0.2)
+    quickspine(ax)
+    ax.set_ylabel('– log likelihood')
+    ax.set_xticks([0,1])
+    ax.set_xticklabels(['traning', 'testing'])
+    quickleg(ax)
+    # quicksave('all subjects logll train vs test')
+
+
+# style 2, sub by sub
+with initiate_plot(4,2,300) as fig:
+    i=0
+    increment=0.3
+    ax=fig.add_subplot(111)
+    for trainlogll, testlogll, thesub in zip(trainloglls,testloglls,subnames):
+        ax.scatter(np.zeros_like(trainlogll)+i,trainlogll, color='b', label='each subject training log likelihood',s=1)
+        ax.scatter(np.zeros_like(testlogll)+i+increment,testlogll, color='r', label='each subject testing log likelihood ',s=1)
+        
+        lines=np.vstack([sorted(trainlogll),sorted(testlogll)]).T
+        for y in lines:
+            ax.plot([i, i+increment],y, color='yellow', alpha=0.2)
+        i+=1
+    quickspine(ax)
+    ax.set_ylabel('– log likelihood')
+    ax.set_xlabel('subjects')
+    # ax.set_xticks([0,1])
+    # ax.set_xticklabels(['traning', 'testing'])
+    # quickleg(ax)
+    # quicksave('each subjects logll train vs test')
+
+
+
+
+# style 1, all together
+with initiate_plot(2,2,300) as fig:
+    ax=fig.add_subplot(111)
+    for trainlogll, testlogll, thesub in zip(trainloglls,testloglls,subnames):
+        ax.scatter(trainlogll,testlogll,s=1)
+    ax.plot([0,20],[0,20])
+
+

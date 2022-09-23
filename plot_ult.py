@@ -534,8 +534,6 @@ def policy_range(r_range=None,r_ticks=None,a_range=None,a_ticks=None):
 
     return r_labels, a_labels, policy_data_v, policy_data_w
 
-    # imports and define agent name
-
 
 def plot_path_ddpg(modelname,env,num_episode=None):
     
@@ -3740,9 +3738,9 @@ def initiate_plot(dimx=24, dimy=9, dpi=100, fontweight='normal'):
     
 def quicksave(name,fig=None):
     if not fig:
-        plt.savefig('C:/Users/24455/iCloudDrive/misc/602e8a45552ffee5239628ae/figures/{}.svg'.format(name), dpi='figure', format='svg',bbox_inches="tight")
+        plt.savefig('/data/figures/{}.svg'.format(name), dpi='figure', format='svg',bbox_inches="tight")
     else:
-        fig.savefig('C:/Users/24455/iCloudDrive/misc/602e8a45552ffee5239628ae/figures/{}.svg'.format(name), dpi='figure', format='svg',bbox_inches="tight")
+        fig.savefig('/data/figures/{}.svg'.format(name), dpi='figure', format='svg',bbox_inches="tight")
 
 
 def set_violin_plot(bp, facecolor, edgecolor, linewidth=1, alpha=1, ls='-', hatch=r''):
@@ -4779,6 +4777,68 @@ def plotoverhead_simple(states,task,color='b',label='label',ax=None):
     return ax
 
 
+def plotctrl_simple(actions,color='b',label='label',fig=None,alpha=0.5):
+    if fig:
+        ax=fig.add_subplot(211)
+        for a in actions:
+            ax.plot(a[:,0]*200, color=color,alpha=alpha,label=label)
+        quickspine(ax)
+        ax.set_ylabel('v control')
+        ax.set_xticklabels([])
+
+        ax=fig.add_subplot(212)
+        for a in actions:
+            ax.plot(a[:,1]*200, color=color,alpha=alpha,label=label)
+        quickspine(ax)
+        ax.set_xlabel('time [dt]')
+        ax.set_ylabel('w control')
+    else:
+        with initiate_plot(3, 3,300) as fig:
+            ax=fig.add_subplot(211)
+            for a in actions:
+                ax.plot(a[:,0]*200, color=color,alpha=alpha,label=label)
+            quickspine(ax)
+            ax.set_ylabel('v control')
+            ax.set_xticklabels([])
+
+            ax=fig.add_subplot(212)
+            for a in actions:
+                ax.plot(a[:,1]*200, color=color,alpha=alpha,label=label)
+            quickspine(ax)
+            ax.set_xlabel('time [dt]')
+            ax.set_ylabel('w control')
+
+    return fig
+
+
+def plotctrl_vs(actions1, actions2, color1='b', color2='r', label1='label1', label2='label2', alpha=1):
+    with initiate_plot(3, 3,300) as fig:
+        ax=fig.add_subplot(211)
+        totaltime=min( max([len(a) for a in actions1]), max([len(a) for a in actions2]) )
+        for thisaction in actions1:
+            a=thisaction[:totaltime]
+            ax.plot(a[:,0], color=color1,alpha=alpha,label=label1)
+        for thisaction in actions2:
+            a=thisaction[:totaltime]
+            ax.plot(a[:,0], color=color2,alpha=alpha,label=label2)
+
+        quickspine(ax)
+        ax.set_ylabel('v control')
+        ax.set_xticklabels([])
+
+        ax=fig.add_subplot(212)
+        for thisaction in actions1:
+            a=thisaction[:totaltime]
+            ax.plot(a[:,1], color=color1,alpha=alpha,label=label1)
+        for thisaction in actions2:
+            a=thisaction[:totaltime]
+            ax.plot(a[:,1], color=color2,alpha=alpha,label=label2)
+        quickspine(ax)
+        ax.set_xlabel('time [dt]')
+        ax.set_ylabel('w control')
+        quickleg(ax)
+    return fig
+    
 def select_tar(states, actions, tasks, cond=None):
     angels=np.array([xy2pol(task, rotation=False)[1] for task in tasks])
     inds=np.where( (angels<=-pi/4*0.7) | (angels>=pi/4*0.7) )[0]
@@ -5072,6 +5132,17 @@ def run_trials(agent, env, phi, theta, task,ntrials=10):
             if len(epstates)>5:
                 states.append(torch.stack(epstates)[:,:,0])
                 actions.append(torch.stack(epactions))
+    return states,actions
+
+
+def run_trials_multitask(agent, env, phi, theta, tasks,ntrials=10):
+    states=[]
+    actions=[]
+    for thetask in tasks:
+        s,a = run_trials(agent, env, phi, theta, thetask,ntrials=ntrials)
+        for i in range(ntrials):
+            states.append(s[i])
+            actions.append(a[i])
     return states,actions
 
 

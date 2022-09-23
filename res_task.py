@@ -20,7 +20,7 @@ from plot_ult import *
 # D. Target locations are randomly drawn within a certain range. Red means monkey skipped this targets. ----------------------------
 # load all df
 print('loading data')
-datapath=Path("Z:\\bruno_normal\\packed")
+datapath=Path("/data\\bruno_normal\\packed")
 with open(datapath,'rb') as f:
     df = pickle.load(f)
 df=datawash(df)
