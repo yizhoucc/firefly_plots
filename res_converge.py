@@ -46,7 +46,7 @@ with initiate_plot(4,2,300) as f:
     # loglls=torch.tensor(loglls).flatten()
     ax.set_xlabel('generations')
     ax.set_ylabel('log likelihood')
-    quicksave('logll vs gen')
+    # quicksave('logll vs gen')
 
 
 # theta trend
@@ -81,7 +81,7 @@ for i in range(nrow):
         if j==0:
             ax.set_ylabel('parameter value')
     plt.tight_layout()
-    quicksave('theta trend for sup')
+    # quicksave('theta trend for sup')
 
 
 
@@ -141,16 +141,25 @@ with initiate_plot(5,1,300) as fig:
 
 # % covariance  ----------------------------
 # load inverse log
-# calculate eig
+theta,cov,err=process_inv("Z:/bruno_pert/cmafull_packed_bruno_pert")
 # plot
-
+with initiate_plot(4,4,300) as fig:
+    ax=fig.add_subplot(1,1,1)
+    cov=torch.tensor(cov)
+    im=plt.imshow(cov[inds].t()[inds].t(),cmap=plt.get_cmap('bwr'),vmin=-torch.max(cov),vmax=torch.max(cov))
+    ax.set_title('covariance matrix', fontsize=20)
+    c=plt.colorbar(im,fraction=0.046, pad=0.04)
+    c.set_label('covariance')
+    x_pos = np.arange(len(theta_names))
+    plt.yticks(x_pos, [theta_names[i] for i in inds],ha='right')
+    plt.xticks(x_pos, [theta_names[i] for i in inds],rotation=45,ha='right')
+    
 
 # % correlation ----------------------------
 # load inverse log
 theta,cov,err=process_inv("Z:/bruno_pert/cmafull_packed_bruno_pert")
 correlation=correlation_from_covariance(cov)
-inds=[1, 3, 5, 7, 0, 2, 4,6, 8, 9]
-
+inds=[1, 3, 5, 7, 0, 2, 4, 6, 8, 9]
 
 correlation=correlation-torch.diag(torch.diag(correlation))+torch.diag(torch.diag(cov))
 correlationsorted=correlation[inds].T[inds].T
@@ -163,21 +172,23 @@ for i in range(10):
     seplines.append([[i-0.5,i+0.5],[i+0.5,i+0.5]])
     seplines.append([[i-0.5,i-0.5],[i-0.5,i+0.5]])
 
-# with initiate_plot(4,4,300) as fig:
-#     ax=fig.add_subplot(1,1,1)
-#     quickspine(ax)
-#     for sline in seplines:
-#         ax.plot(sline[0],sline[1],'k')
-#     im=ax.imshow(correlationsorted,cmap=plt.get_cmap('bwr'),
-#         vmin=-1,vmax=1)
-#     ax.set_title('correlation matrix', fontsize=16)
-#     c=plt.colorbar(im,fraction=0.046, pad=0.04,ticks=[-1, 0, 1])
-#     c.set_label('correlation')
-#     x_pos = np.arange(len(theta_names))
-#     plt.yticks(x_pos, [theta_names[i] for i in inds],ha='right')
-#     plt.xticks(x_pos, [theta_names[i] for i in inds],rotation=45,ha='right')
-#     quicksave('correlation matrix bruno pert with var')
+# correlation as step
+with initiate_plot(4,4,300) as fig:
+    ax=fig.add_subplot(1,1,1)
+    quickspine(ax)
+    for sline in seplines:
+        ax.plot(sline[0],sline[1],'k')
+    im=ax.imshow(correlationsorted,cmap=plt.get_cmap('bwr'),
+        vmin=-1,vmax=1)
+    ax.set_title('correlation matrix', fontsize=16)
+    c=plt.colorbar(im,fraction=0.046, pad=0.04,ticks=[-1, 0, 1])
+    c.set_label('correlation')
+    x_pos = np.arange(len(theta_names))
+    plt.yticks(x_pos, [theta_names[i] for i in inds],ha='right')
+    plt.xticks(x_pos, [theta_names[i] for i in inds],rotation=45,ha='right')
+    # quicksave('correlation matrix bruno pert with var')
 
+# full correlation
 theta,cov,err=process_inv("Z:/bruno_normal/preallpacked")
 corr=correlation_from_covariance(cov)
 inds=[1, 3, 5, 7, 0, 2, 4,6, 8, 9]
@@ -197,9 +208,6 @@ with initiate_plot(4,4,300) as fig:
     plt.xticks(x_pos, [theta_names[i] for i in inds],rotation=45,ha='right')
     # quicksave('correlation matrix bruno normal')
 
-琢哥最近怎么样 身体恢复的还好吗
-我又来准备申实习了哈哈 之前说7月可能会开放些相关的岗位看起来目前还没有
-想提前问下是要等职位描述放出来再叫xaq帮我推荐 还是差不多现在就可以了 他说personal和official recommondation都可以
 # % theta varing by first eigen vector (the mattered most direction) ----------------------------
 
 

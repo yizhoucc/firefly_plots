@@ -2699,8 +2699,8 @@ class FireFlyReady(gym.Env, torch.nn.Module):
         self.trial_sum_cost=0.
         self.trial_sum_reward=0.
         self.rewardgiven=False
-        vctrl=vctrl if vctrl else abs(torch.zeros(1).normal_(0., 0.3))
-        wctrl=wctrl if wctrl else torch.zeros(1).normal_(0., 0.3)
+        vctrl=vctrl if vctrl is not None else abs(torch.zeros(1).normal_(0., 0.3))
+        wctrl=wctrl if wctrl is not None else torch.zeros(1).normal_(0., 0.3)
         # vctrl=torch.zeros(1)
         # wctrl=torch.zeros(1)
         self.reset_state(goal_position=goal_position,vctrl=vctrl,wctrl=wctrl)
@@ -2823,7 +2823,7 @@ class FireFlyReady(gym.Env, torch.nn.Module):
         phi[10]=inital_y_std if inital_y_std is not None else phi[10]
         return phi
 
-    def step(self, action,next_state=None):
+    def step(self, action,next_state=None,predictiononly=False):
         action=torch.tensor(action).reshape(1,-1)
         self.a=action
         _, self.prev_d=self.get_distance(state=self.b)
@@ -2846,7 +2846,7 @@ class FireFlyReady(gym.Env, torch.nn.Module):
         else:
             self.s=next_state
         self.o=self.observations(self.s)
-        self.b, self.P=self.belief_step(self.b,self.P,self.o,action)
+        self.b, self.P=self.belief_step(self.b,self.P,self.o,action,predictiononly=predictiononly)
         self.decision_info=self.wrap_decision_info(previous_action=action,task_param=self.theta)
         # eval
         reward, cost = self.caculate_reward()
@@ -3047,7 +3047,7 @@ class FireFlyReady(gym.Env, torch.nn.Module):
         next_s = torch.stack((px, py, angle, v, w))
         return next_s.view(-1,1)
 
-    def belief_step(self, previous_b,previous_P, o, a, task_param=None):
+    def belief_step(self, previous_b,previous_P, o, a, task_param=None,predictiononly=False):
         task_param = self.theta if task_param is None else task_param
         I = torch.eye(5)
         H = torch.tensor([[0.,0.,0.,1,0.],[0.,0.,0.,0.,1]])
@@ -3056,6 +3056,7 @@ class FireFlyReady(gym.Env, torch.nn.Module):
         predicted_b = self.update_state(previous_b)
         predicted_b = self.apply_action(predicted_b,a)
         predicted_P = self.A@(previous_P)@(self.A.t())+self.Q 
+
         if not is_pos_def(predicted_P):
             print('predicted not pos def')
             print('action ,', a)
@@ -3067,6 +3068,8 @@ class FireFlyReady(gym.Env, torch.nn.Module):
             APA = self.A@(previous_P)@(self.A.t())
             print("APA:", APA)
             print("APA +:", is_pos_def(APA))
+        if predictiononly:
+            return predicted_b,predicted_P
 
         error = o - H@predicted_b
         S = H@(predicted_P)@(H.t()) + self.R 

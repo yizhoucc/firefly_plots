@@ -4376,6 +4376,41 @@ def plotctrl_mk(indls,actions=None,**kwargs):
         return  ax
 
 
+def plotctrlasd(actionslike,**kwargs):
+    labels=[' v', ' w']
+    with initiate_plot(3,4, 300) as fig, warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        if 'ax1' in kwargs and kwargs['ax1'] and kwargs['ax2'] is not None:
+            ax1= kwargs['ax1']
+            ax2= kwargs['ax2'] 
+        else:
+            ax1 = fig.add_subplot(211)
+            ax2 = fig.add_subplot(212, sharex=ax1)
+        if 'color' in kwargs:
+            color=kwargs['color']
+        else:
+            color=[color_settings['v'],color_settings['w']]
+        prefix=kwargs['prefix'] if 'prefix' in kwargs else ''
+        # ax.set_aspect('equal')
+
+        ax2.set_xlabel('time, dt')
+        ax1.set_ylabel('control v')
+        ax2.set_ylabel('control w')
+        # plot data
+        num_trials=len(actionslike)
+        for trial_i in range(num_trials):
+            ax1.plot(actionslike[trial_i][:,0],color=color[0], label=prefix+labels[0])
+            ax2.plot(actionslike[trial_i][:,1],color=color[1],label=prefix+labels[1])
+        # legend and label
+        quickleg(ax1);quickleg(ax2)
+        quickspine(ax1);quickspine(ax2)
+        ax1.set_xlim(left=0.);ax2.set_xlim(left=0.)
+        ax1.set_ylim(0,1.1);ax2.set_ylim(-1,1)
+        ax2.set_yticks([-1,0,1])
+        plt.tight_layout()
+        return  ax1,ax2
+
+
 #----overhead----------------------------------------------------------------
 def plotoverhead(input,alpha=0.8,**kwargs):
     '''
@@ -4736,13 +4771,13 @@ def plotoverhead_skip(input):
         fig.tight_layout(pad=0)
 
 
-def plotoverhead_simple(states,task,color='b',label='label',ax=None):
+def plotoverhead_simple(states,task,color='b',label='label',ax=None, plotgoal=False):
     if ax:
         for s in states:
-            ax.plot(s[:,0]*200,s[:,1]*200, color=color,alpha=0.5,label=label)
-        ax.legend()        
-        goalcircle = plt.Circle((task[0]*200,task[1]*200), 65, color=color_settings['goal'], edgecolor='none', alpha=0.3, linewidth=0.8)
-        ax.add_patch(goalcircle)
+            ax.plot(s[:,0]*200,s[:,1]*200, color=color,alpha=0.5,label=label)     
+        if plotgoal:
+            goalcircle = plt.Circle((task[0]*200,task[1]*200), 65, edgecolor=color_settings['goal'],  alpha=1, linewidth=2)
+            ax.add_patch(goalcircle)
         ax.set_aspect('equal')
         ax.set_xlabel('world x [cm]')
         ax.set_ylabel('world y [cm]')
@@ -4751,17 +4786,14 @@ def plotoverhead_simple(states,task,color='b',label='label',ax=None):
         ax.set_xticks(mytick(ax.get_xticks(),3,-1))
         ax.set_yticks(mytick(ax.get_yticks(),3,-1))
         quickleg(ax)
-        # handles, labels_ = ax.get_legend_handles_labels()
-        # by_label = dict(zip(labels_, handles))
-        # ax.legend(by_label.values(), by_label.keys(),loc='upper right')
     else:
         with initiate_plot(3, 3,300) as fig:
             ax=fig.add_subplot(111)
             for s in states:
                 ax.plot(s[:,0]*200,s[:,1]*200, color=color,alpha=0.5,label=label)
-            ax.legend()        
-            goalcircle = plt.Circle((task[0]*200,task[1]*200), 65, color=color_settings['goal'], edgecolor='none', alpha=0.3, linewidth=0.8)
-            ax.add_patch(goalcircle)
+            if plotgoal:
+                goalcircle = plt.Circle((task[0]*200,task[1]*200), 65, edgecolor=color_settings['goal'], alpha=1, linewidth=2)
+                ax.add_patch(goalcircle)
             ax.set_aspect('equal')
             ax.set_xlabel('world x [cm]')
             ax.set_ylabel('world y [cm]')
@@ -4770,9 +4802,6 @@ def plotoverhead_simple(states,task,color='b',label='label',ax=None):
             ax.set_xticks(mytick(ax.get_xticks(),3,-1))
             ax.set_yticks(mytick(ax.get_yticks(),3,-1))
             quickleg(ax)
-            # handles, labels_ = ax.get_legend_handles_labels()
-            # by_label = dict(zip(labels_, handles))
-            # ax.legend(by_label.values(), by_label.keys(),loc='upper right')
             plt.tight_layout()
     return ax
 
@@ -5067,7 +5096,7 @@ def get_stops(states, tasks, thistask, env, theta, agent,pert=None):
     return mkstops,ircstops
 
 
-def run_trial(agent=None,env=None,given_action=None, given_state=None, action_noise=0.1,pert=None):
+def run_trial(agent=None,env=None,given_action=None, given_state=None, action_noise=0.1,pert=None,stimdur=None):
     # return epactions,epbliefs,epbcov,epstates
     # 10 a 10 s. 
     # when both
@@ -5081,6 +5110,11 @@ def run_trial(agent=None,env=None,given_action=None, given_state=None, action_no
         epstates.append(env.s)
     # saves
     epactions,epbliefs,epbcov,epstates=[],[],[],[]
+    if given_action is not None:
+        epactions.append(given_action[0])
+    else:
+        epactions.append(env.s[3:].view(-1))
+    print(env.s,epactions)
     with torch.no_grad():
         # if at least have something
         if given_action is not None and given_state is not None: # have both
@@ -5103,7 +5137,11 @@ def run_trial(agent=None,env=None,given_action=None, given_state=None, action_no
             while t<len(given_action):
                 action = agent(env.decision_info)[0]
                 _collect()
-                env.step(torch.tensor(given_action[t]).reshape(1,-1).reshape(1,-1)) 
+                noise=torch.normal(torch.zeros(2),action_noise)
+                _action=(action+noise).clamp(-1,1)
+                if pert is not None and int(env.trial_timer)<len(pert):
+                    _action=(given_action[t]).reshape(1,-1)+pert[int(env.trial_timer)]
+                env.step(_action)
                 t+=1
 
         else:  # nothing
@@ -5116,30 +5154,48 @@ def run_trial(agent=None,env=None,given_action=None, given_state=None, action_no
                 _action=(action+noise).clamp(-1,1)
                 if pert is not None and int(env.trial_timer)<len(pert):
                     _action+=pert[int(env.trial_timer)]
-                _,_,done,_=env.step(torch.tensor(_action).reshape(1,-1)) 
+                if stimdur is not None:
+                    _,_,done,_=env.step(torch.tensor(_action).reshape(1,-1), predictiononly=(t>=stimdur)) 
+                else:
+                    _,_,done,_=env.step(torch.tensor(_action).reshape(1,-1)) 
                 t+=1
     return epactions,epbliefs,epbcov,epstates
 
 
-def run_trials(agent, env, phi, theta, task,ntrials=10):
-    # return states and actions
+def run_trials(agent, env, phi, theta, task,ntrials=10,stimdur=None,given_obs=None,action_noise=0.1,pert=None, return_belief=False,given_action=None):
+    # sample ntrials for same task and return states and actions 
     states=[]
     actions=[]
+    beliefs=[]
+    covs=[]
     with suppress():
         while len(states)<ntrials:
-            env.reset(phi=phi, theta=theta, goal_position=task, pro_traj=None,vctrl=0.,wctrl=0. )
-            epactions,_,_,epstates=run_trial(agent,env,given_action=None, given_state=None, action_noise=0.1)
+            if given_action is not None:
+                env.reset(phi=phi, theta=theta, goal_position=task, pro_traj=None,vctrl=given_action[0,0],wctrl=given_action[0,1], obs_traj=given_obs)
+            else:
+                print('given action', given_action)
+                env.reset(phi=phi, theta=theta, goal_position=task, pro_traj=None,vctrl=0.,wctrl=0., obs_traj=given_obs)
+                print('init s',env.s)
+            epactions,epbliefs,epbcov,epstates=run_trial(agent,env,given_action=given_action, given_state=None, pert=pert,action_noise=action_noise,stimdur=stimdur)
             if len(epstates)>5:
                 states.append(torch.stack(epstates)[:,:,0])
                 actions.append(torch.stack(epactions))
-    return states,actions
+                beliefs.append(torch.stack(epbliefs))
+                covs.append((torch.stack(epbcov)))
+    if return_belief:
+        return states,actions, beliefs, covs
+    else:
+        return states, actions
 
 
-def run_trials_multitask(agent, env, phi, theta, tasks,ntrials=10):
+def run_trials_multitask(agent, env, phi, theta, tasks,ntrials=10, stimdur=None,action_noise=0.1):
     states=[]
     actions=[]
-    for thetask in tasks:
-        s,a = run_trials(agent, env, phi, theta, thetask,ntrials=ntrials)
+    for i, thetask in enumerate(tasks):
+        if stimdur is not None:
+            s,a = run_trials(agent, env, phi, theta, thetask,ntrials=ntrials,stimdur=stimdur[i],action_noise=action_noise)
+        else:
+            s,a = run_trials(agent, env, phi, theta, thetask,ntrials=ntrials,action_noise=action_noise)
         for i in range(ntrials):
             states.append(s[i])
             actions.append(a[i])
@@ -5195,12 +5251,12 @@ def quickoverhead(statelike,ax=None,alpha=0.5):
     ax.legend(by_label.values(), by_label.keys(),loc=2, prop={'size': 6})
 
 
-def quickoverhead_state(statelike,taskslike,ax=None,alpha=0.5,goalcircle=False):
+def quickoverhead_state(statelike,taskslike,ax=None,alpha=0.5, color='grey',goalcircle=False):
   with initiate_plot(4, 2, 300) as fig, warnings.catch_warnings():
     warnings.simplefilter('ignore')
     ax = fig.add_subplot(111) if not ax else ax
     for given_state in statelike:
-        ax.plot(given_state[:,0],given_state[:,1],color='grey')
+        ax.plot(given_state[:,0],given_state[:,1],color=color,linewidth=1)
     if goalcircle:
         for eachtask in taskslike:
             ax.add_patch(plt.Circle((eachtask[0],eachtask[1]), 0.13, color=color_settings['goal'], alpha=0.5, edgecolor='none'))
@@ -5218,7 +5274,6 @@ def quickoverhead_state(statelike,taskslike,ax=None,alpha=0.5,goalcircle=False):
     by_label = dict(zip(labels, handles))
     ax.legend(by_label.values(), by_label.keys(),loc=2, prop={'size': 6})
     return ax
-
 
 
 def percentile_err2d(data,axis=0,percentile=95):
@@ -6090,8 +6145,28 @@ def loadmat(filename,key='subjects'):
 
 
 def quickleg(ax,loc='lower right',bbox_to_anchor=(-1,-1)):
+    
     handles, labels = ax.get_legend_handles_labels()
     by_label = dict(zip(labels, handles))
     leg=ax.legend(by_label.values(), by_label.keys(),loc='lower right',bbox_to_anchor=bbox_to_anchor)
     for lh in leg.legendHandles: 
         lh.set_alpha(1)
+
+
+def f_importances(coef, names):
+    imp = coef
+    imp,names = zip(*sorted(zip(imp,names)))
+    plt.barh(range(len(names)), imp, align='center')
+    plt.yticks(range(len(names)), names)
+    plt.xlabel('parameter coef')
+    ax=plt.gca()
+    quickspine(ax)
+
+
+def relu(arr):
+    arr[arr<0]=0
+    return arr
+    
+
+
+

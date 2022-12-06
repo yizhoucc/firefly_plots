@@ -1220,3 +1220,30 @@ with open('distinguishparamZnoisecost3finer19', 'wb+') as f:
 
 
 
+
+
+# smr data
+
+sessions=Path("/data/mkdata/q_normal/01-29-2018")
+
+ext=MonkeyDataExtractor(folder_path=sessions)
+ext.monkey_class='BCM'
+trajectory=ext()
+
+
+# trajectory.to_pickle(eachsession.parent/(str(eachsession)+'_full'))
+dfdownsample(trajectory,eachsession.parent/(str(eachsession)+'_ds'))
+print('file saved')
+# pack all ds data together
+folderpath=Path("D:\mkdata\\jimmy_pert")
+sessions=[x for x in folderpath.iterdir() if x.is_file()]
+packed=None
+for eachsession in sessions:
+    with open(eachsession, 'rb') as f:
+        df = pickle.load(f)
+        packed=pd.concat([packed,df])
+packed.to_pickle(folderpath/'packed')
+# load packed
+folderpath=Path("D:\mkdata\\jimmy_pert")
+with open(folderpath/'packed', 'rb') as f:
+        df = pickle.load(f)
