@@ -116,8 +116,8 @@ theta_names = [ 'pro gain v',
                 'obs noise w',
                 'action cost v',      
                 'action cost w',      
-                'init uncertainty x',      
-                'init uncertainty y',      
+                'init uncertainty forward',      
+                'init uncertainty horizontal',      
                 ]
 
 global theta_mean
@@ -384,7 +384,6 @@ def plot_cov_ellipse(cov, pos=[0,0], nstd=2, color=None, ax=None,alpha=1,edgecol
         ax.set_ylim(-1.5,1.5)
         ax.set_xlim(-1.5,1.5)
 
-
     vals, vecs = eigsorted(cov)
     theta = np.degrees(np.arctan2(*vecs[:,0][::-1]))
 
@@ -401,7 +400,7 @@ def plot_cov_ellipse(cov, pos=[0,0], nstd=2, color=None, ax=None,alpha=1,edgecol
     return ellip
 
 
-def plot_circle(cov, pos, color=None, ax=None,alpha=1, **kwargs):
+def plot_circle(cov, pos, color=None, ax=None,alpha=1, edgecolor=None, **kwargs):
     'plot a circle'
     if ax is None:
         figure=plt.figure(figsize=(10,10))
@@ -413,6 +412,9 @@ def plot_circle(cov, pos, color=None, ax=None,alpha=1, **kwargs):
     c = Circle(pos,r)
     if color is not None:
         c.set_color(color)
+    if edgecolor:
+        c.set_color('none')
+        c.set_edgecolor(edgecolor)
     c.set_alpha(alpha)
     ax.add_artist(c)
     return c
@@ -5114,7 +5116,7 @@ def run_trial(agent=None,env=None,given_action=None, given_state=None, action_no
         epactions.append(given_action[0])
     else:
         epactions.append(env.s[3:].view(-1))
-    print(env.s,epactions)
+    # print(env.s,epactions)
     with torch.no_grad():
         # if at least have something
         if given_action is not None and given_state is not None: # have both
@@ -5122,8 +5124,10 @@ def run_trial(agent=None,env=None,given_action=None, given_state=None, action_no
             while t<len(given_state):
                 action = agent(env.decision_info)[0]   
                 _collect()           
+                # print(given_state)
                 env.step(torch.tensor(given_action[t]).reshape(1,-1),next_state=given_state[t].view(-1,1)) 
                 t+=1
+                # print(env.s)
         elif given_state is not None: # have states but no actions
             t=0
             while t<len(given_state):
@@ -5162,7 +5166,7 @@ def run_trial(agent=None,env=None,given_action=None, given_state=None, action_no
     return epactions,epbliefs,epbcov,epstates
 
 
-def run_trials(agent, env, phi, theta, task,ntrials=10,stimdur=None,given_obs=None,action_noise=0.1,pert=None, return_belief=False,given_action=None):
+def run_trials(agent, env, phi, theta, task,ntrials=10,stimdur=None,given_obs=None,action_noise=0.1,pert=None, return_belief=False,given_action=None,given_state=None):
     # sample ntrials for same task and return states and actions 
     states=[]
     actions=[]
@@ -5176,8 +5180,9 @@ def run_trials(agent, env, phi, theta, task,ntrials=10,stimdur=None,given_obs=No
                 print('given action', given_action)
                 env.reset(phi=phi, theta=theta, goal_position=task, pro_traj=None,vctrl=0.,wctrl=0., obs_traj=given_obs)
                 print('init s',env.s)
-            epactions,epbliefs,epbcov,epstates=run_trial(agent,env,given_action=given_action, given_state=None, pert=pert,action_noise=action_noise,stimdur=stimdur)
+            epactions,epbliefs,epbcov,epstates=run_trial(agent,env,given_action=given_action, given_state=given_state, pert=pert,action_noise=action_noise,stimdur=stimdur,)
             if len(epstates)>5:
+                # print([s.shape for s in epstates])
                 states.append(torch.stack(epstates)[:,:,0])
                 actions.append(torch.stack(epactions))
                 beliefs.append(torch.stack(epbliefs))

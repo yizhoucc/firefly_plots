@@ -10,8 +10,6 @@ calcualte the logll for ASD and healthy seperatly, add together.
 final result is a heat map
 ''')
 
-# imports
-# ---------------------------------------------------------------------------------
 import matplotlib
 from playsound import playsound
 import matplotlib.pyplot as plt
@@ -46,8 +44,9 @@ arg = Config()
 import os
 from timeit import default_timer as timer
 from plot_ult import *
+from scipy.ndimage.filters import gaussian_filter
 
-# load agent and task --------------------------------------------------------
+# load agent and task 
 env=ffacc_real.FireFlyPaper(arg)
 env.episode_len=50
 env.debug=1
@@ -68,9 +67,7 @@ agent_=TD3.load('trained_agent/paper.zip')
 agent=agent_.actor.mu.cpu()
 
 
-# define the midpoint between ASD and healthy ------------------------------------------------
-
-
+# define the midpoint between ASD and healthy 
 logls=['/data/human/fixragroup','/data/human/clusterpaperhgroup']
 monkeynames=['ASD', 'Ctrl' ]
 
@@ -124,14 +121,14 @@ theta_init,theta_final=torch.tensor(theta_init).view(-1,1).float(),torch.tensor(
 
 
 
-# function to eval the logll of the delta theta-----------------------------------------------
+# function to eval the logll of the delta theta
 gridreso=11
 num_sample=200
 # load the data
-datapath=Path("Z:/human/hgroup")
+datapath=Path("/data/human/hgroup")
 with open(datapath, 'rb') as f:
     hstates, hactions, htasks = pickle.load(f)
-datapath=Path("Z:/human/agroup")
+datapath=Path("/data/human/agroup")
 with open(datapath, 'rb') as f:
     astates, aactions, atasks = pickle.load(f)
 # select the side tasks
@@ -159,7 +156,28 @@ gridreso**2 *(ntrialT * nsample) * 2
 
 
 
-# vary noise and cost----------------------------------------------------------------------
+# vary noise and gain -------------------------------
+dx,dy=np.zeros((11)),np.zeros((11))
+dx[5]=1 # noise
+dy[1]=1 # gain
+X,Y=np.linspace(-0.7,0.7,gridreso), np.linspace(-0.45,0.45,gridreso)
+paramls=[]
+# Z=np.zeros((gridreso,gridreso))
+for i in range(gridreso):
+    for j in range(gridreso):
+        atheta=torch.tensor(-dx*X[i]-dy*Y[j]+midpoint).float().view(-1,1)
+        htheta=torch.tensor(dx*X[i]+dy*Y[j]+midpoint).float().view(-1,1)
+        # eval the logll
+        # Z[i,j]=atheta,htheta
+        paramls.append([atheta,htheta])
+
+# Z=ray.get([getlogll.remote(each) for each in paramls])
+# with open('distinguishparamZnoisecost3finer19', 'wb+') as f:
+#         pickle.dump((paramls,Z), f, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+
+# vary noise and cost -------------------------------
 dx,dy=np.zeros((11)),np.zeros((11))
 dx[5]=1 # noise
 dy[8]=1 # cost
@@ -183,10 +201,16 @@ with open('/data/human/jointlikelihood/distinguishparamZnoisecost3finer19', 'rb'
     paramls,Z= pickle.load(f)
 formatedZ=np.array(Z).reshape(int(len(Z)**0.5),int(len(Z)**0.5)).T
 truedelta=mus[1]-mus[0]
+
+
+from scipy.ndimage.filters import gaussian_filter
+sigma = 0.5
+formatedZ = gaussian_filter(formatedZ, sigma)
+
 with initiate_plot(5,5,300) as f:
     ax=f.add_subplot(111)
-    im=ax.imshow(formatedZ[1:-1],origin='lower', extent=(X[0],X[-2],Y[2],Y[-2]),aspect=(X[-2]-X[0])/(Y[-2]-Y[0]),vmin=-79, vmax=-73, cmap='coolwarm')    
-    # im=ax.contourf(formatedZ[1:-1],origin='lower', extent=(X[0],X[-2],Y[2],Y[-2]),aspect=(X[-2]-X[0])/(Y[-2]-Y[0]),vmin=-79, vmax=-73, cmap='coolwarm')    
+    # im=ax.imshow(formatedZ[1:-1],origin='lower', extent=(X[0],X[-2],Y[2],Y[-2]),aspect=(X[-2]-X[0])/(Y[-2]-Y[0]),vmin=-79, vmax=-73, cmap='jet')    
+    im=ax.contourf(formatedZ[1:-1],origin='lower', extent=(X[0],X[-2],Y[2],Y[-2]),aspect=(X[-2]-X[0])/(Y[-2]-Y[0]),vmin=-79, vmax=-73, cmap='jet')    
     ax.set_aspect((X[-2]-X[0])/(Y[-2]-Y[0]))
     divider = make_axes_locatable(ax)
     cax = divider.append_axes("right", size="3%", pad=0.005)
@@ -202,7 +226,7 @@ with initiate_plot(5,5,300) as f:
 
 
 
-# prediciton over obs -----------------------------------------------------
+# prediciton over obs 1d ---------------------------------
 # vary obs noise, while try to keep simlar uncertainty and same bias
 '''
 constaints:
@@ -260,7 +284,7 @@ for i in range(gridreso):
 
 
 # # vary obs, while keep uncertainty and kalman gain the same.
-# with open('distinguishparamZobspre', 'rb') as f:
+# with open('/data/human/distinguishparamZobspre', 'rb') as f:
 #     paramls,Z= pickle.load(f)
 # formatedZ=np.array(Z).reshape(int(len(Z)**0.5),int(len(Z)**0.5)).T
 # truedelta=mus[1]-mus[0]
@@ -279,7 +303,7 @@ for i in range(gridreso):
 
 
 
-# vary two noise ------------------------------------------------------------------------
+# vary two noise -----------------------------------------------
 '''
         # vary process noise and obs noise.
         # calcualte the gains while keep bias same
@@ -296,7 +320,7 @@ hbias=totalbias(mus[1][1],mus[1][3],mus[1][5])
 c=totalgivenop(mus[0][5],mus[0][3])
 pogiventotal(mus[0][5],auncertainty)
 
-X,Y=np.linspace(-0.5,0.5,gridreso),np.linspace(-0.3,0.3,gridreso) # on and pn
+X,Y=np.linspace(-0.4,0.4,gridreso),np.linspace(-0.2,0.2,gridreso) # on and pn
 paramls=[]
 z=np.zeros((gridreso,gridreso))
 for i in range(gridreso):
@@ -326,11 +350,11 @@ for i in range(gridreso):
 # with open('distinguishparamZtwonoisessmaller2finer19', 'wb+') as f:
 #         pickle.dump((paramls,Z), f, protocol=pickle.HIGHEST_PROTOCOL)
 
-# # vary obs and process noise, while keep bias the same (so we vary gains), result in vary uncertainties, smaller range
-# with open('distinguishparamZtwonoisessmaller2finer19', 'rb') as f:
-#     paramls,Z= pickle.load(f)
-# formatedZ=np.array(Z).reshape(int(len(Z)**0.5),int(len(Z)**0.5)).T
-# truedelta=mus[1]-mus[0]
+# vary obs and process noise, while keep bias the same (so we vary gains), result in vary uncertainties, smaller range
+with open('/data/human/jointlikelihood/2noise2', 'rb') as f:
+    paramls,Z= pickle.load(f)
+formatedZ=np.array(Z).reshape(int(len(Z)**0.5),int(len(Z)**0.5)).T
+truedelta=mus[1]-mus[0]
 
 # with initiate_plot(3,3,300) as f:
 #     ax=f.add_subplot(111)
@@ -346,11 +370,37 @@ for i in range(gridreso):
 #     # ax.legend()
 #     quickspine(ax)
 
+def center_rotation(mat):
+    new=np.zeros_like(mat)
+    m,n=mat.shape
+    for i in range(mat.shape[0]):
+        for j in range(mat.shape[1]):
+            new[i,j]=mat[m-1-i, n-1-j]
+    return new
+sigma = 0.5     
+formatedZ=center_rotation(gaussian_filter(formatedZ, sigma))
+
+with initiate_plot(3,3,300) as f:
+    ax=f.add_subplot(111)
+    im=ax.contourf(formatedZ,origin='lower', extent=(X[0],X[-1],Y[-1],Y[0]),cmap='Greys')
+    # ax.set_aspect('equal')
+    plt.colorbar(im,label='joint log likelihood') 
+    ax.scatter(0,0,label='zero') # midpoint, 0,0
+    ax.set_xlabel('delta obs noise')
+    ax.set_ylabel('delta prediction')
+    ax.scatter(-truedelta[5]/2,truedelta[3]/2,label='inferred delta') # inferred delta
+    # ax.legend()
+    # plt.plot([theta_init[5], theta_final[5]],[theta_init[3],theta_final[3]])
+    # plt.plot(ax.get_xlim(),-np.array(ax.get_xlim())*(theta_init[3]-theta_final[3]/(theta_init[5]-theta_final[5])).item())
+    # plt.plot(ax.get_xlim(),np.array(ax.get_xlim())*-1)
+    # plt.plot(theta_init[[5,3]],theta_final[[5,3]])
+    quickspine(ax)
+    # quicksave('vary 2 noise joint')
 
 
 
 
-# kalman gain vs uncertainty ---------------------------------------------------------------------
+# kalman gain vs uncertainty ------------------------------------------
 
 def getk(midpoint):
     return midpoint[5]**2/(midpoint[3]**2+midpoint[5]**2)
@@ -386,7 +436,7 @@ for i in range(gridreso):
         paramls.append([atheta,htheta])
 
 
-# bias vs uncertainty ---------------------------------------------------------------------
+# bias vs uncertainty -----------------------------------------------------------
 # vary obs noise and gain
 
 '''
@@ -415,25 +465,54 @@ for i in range(gridreso):
 # with open('distinguishparamZgainonoisefiner19', 'wb+') as f:
 #         pickle.dump((paramls,Z), f, protocol=pickle.HIGHEST_PROTOCOL)
 
-# # vary gain and noise (vary bias vs uncertainty)
-# with open('distinguishparamZgainonoisefiner19', 'rb') as f:
-#     paramls,Z= pickle.load(f)
-# formatedZ=np.array(Z).reshape(int(len(Z)**0.5),int(len(Z)**0.5)).T
-# truedelta=mus[1]-mus[0]
-# X,Y=np.linspace(-0.7,0.7,gridreso),np.linspace(-1,1,gridreso) # o, gain
-# with initiate_plot(3,3,300) as f:
-#     ax=f.add_subplot(111)
-#     # im=ax.imshow(formatedZ,origin='lower', extent=(X[0],X[-1],Y[0],Y[-1]), aspect='auto')
-#     im=ax.imshow(formatedZ,origin='lower', extent=(X[0],X[-1],Y[0],Y[-1]),aspect='auto',vmin=-84, vmax=-73)
-#     # im=ax.contourf(formatedZ,origin='lower', extent=(X[0],X[-1],Y[0],Y[-1]),vmin=-103, vmax=-73)
-#     ax.set_aspect('equal')
-#     plt.colorbar(im,label='joint log likelihood') 
-#     ax.scatter(0,0,label='delta zero') # midpoint, 0,0
-#     ax.set_xlabel('delta obs noise')
-#     ax.set_ylabel('delta assumed control gain')
-#     ax.scatter(truedelta[5]/2,truedelta[1]/2,label='inferred delta') # inferred delta
-#     ax.legend(loc='center left', bbox_to_anchor=(2, 0.5))
-#     quickspine(ax)
+# vary gain and noise (vary bias vs uncertainty)
+with open('/data/human/jointlikelihood/distinguishparamZgainonoisefiner19', 'rb') as f:
+    paramls,Z= pickle.load(f)
+formatedZ=np.array(Z).reshape(int(len(Z)**0.5),int(len(Z)**0.5)).T
+truedelta=mus[1]-mus[0]
+X,Y=np.linspace(-0.7,0.7,gridreso),np.linspace(-1,1,gridreso) # o, gain
+
+sigma = 0.5
+formatedZ = gaussian_filter(formatedZ, sigma)
+
+with initiate_plot(3,3,300) as f:
+    ax=f.add_subplot(111)
+    # im=ax.imshow(formatedZ,origin='lower', extent=(X[0],X[-1],Y[0],Y[-1]), aspect='auto')
+    # im=ax.imshow(formatedZ,origin='lower', extent=(X[0],X[-1],Y[0],Y[-1]),aspect='auto',vmin=-84, vmax=-73)
+    im=ax.contourf(-np.log(-formatedZ[2:-3]),origin='lower', extent=(X[0],X[-1],Y[2],Y[-3]))
+    ax.set_aspect('equal')
+    # ax.set_ylim(-0.5,0.5)
+    plt.colorbar(im,label='joint log likelihood') 
+    ax.scatter(0,0,label='delta zero') # midpoint, 0,0
+    ax.set_xlabel('delta obs noise')
+    ax.set_ylabel('delta assumed control gain')
+    ax.scatter(truedelta[5]/2,truedelta[1]/2,label='inferred delta') # inferred delta
+    ax.legend(loc='center left', bbox_to_anchor=(2, 0.5))
+    quickspine(ax)
+
+
+with open('/data/human/jointlikelihood/noisegain', 'rb') as f:
+    paramls,Z= pickle.load(f)
+Z=np.array(Z).reshape(int(len(Z)**0.5),int(len(Z)**0.5))
+truedelta=mus[1]-mus[0]
+X,Y=np.linspace(-0.7,0.7,gridreso),np.linspace(-0.3,0.3,gridreso) # o, gain
+sigma = 0.5
+formatedZ=center_rotation(gaussian_filter(Z, sigma))
+plt.contourf(formatedZ, origin='image',)
+
+with initiate_plot(3,3,300) as f:
+    ax=f.add_subplot(111)
+    im=ax.contourf((formatedZ),origin='image', extent=(X[0],X[-1],Y[0],Y[-1]),cmap='Greys')
+    # ax.set_aspect('equal')
+    plt.colorbar(im,label='joint log likelihood') 
+    ax.scatter(0,0,label='zero') # midpoint, 0,0
+    ax.set_xlabel('delta obs noise')
+    ax.set_ylabel('delta gain')
+    ax.scatter(-truedelta[5]/2,-truedelta[1]/2,label='inferred delta') # inferred delta
+    ax.set_ylim(ax.get_ylim())
+    plt.plot(ax.get_xlim(),np.array(ax.get_xlim())*(theta_init[1]-theta_final[1]/(theta_init[5]-theta_final[5])).item())
+    quickspine(ax)
+    
 
 
 # with initiate_plot(3,3,300) as f:
@@ -453,8 +532,8 @@ for i in range(gridreso):
 # ks,ss=transform2bs(paramls)
 # plt.tricontourf(ks,ss,formatedZ.flatten(),3)
 
-# plot the bias instead of gain.
-# bias=assumed gain * (1-kalman gain)
+# # plot the bias instead of gain.
+# # bias=assumed gain * (1-kalman gain)
 
 # bs,ss=transform2bs(paramls)
 # with initiate_plot(3,3,300) as f:
@@ -475,12 +554,11 @@ for i in range(gridreso):
 # thetas.view(2,-1,1)[0]
 
 
-# shwo bias matters ---------------------------------------------------------------------
-
 '''
 vary gain, and vary some other param. vary cost here.
 '''
-# vary gain and cost, show bias matters
+# vary gain and cost, show bias matters ------------------------
+
 gridreso=17
 X,Y=np.linspace(-0.45,0.45,gridreso),np.linspace(-1,1,gridreso) # cost, gain
 dx,dy=np.zeros((11)),np.zeros((11))

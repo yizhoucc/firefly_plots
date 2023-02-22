@@ -38,7 +38,6 @@ sidetasks=np.array(res)
 
 
 # curvature defination ------------------------------------------------
-
 def curvature_height(xs,ys):
     # the height of rotated (flatten) path
     end=np.array([xs[-1],ys[-1]])
@@ -67,8 +66,7 @@ def curvature_var(xs,ys):
     cur=curvature_math(xs,ys, onevalue=False)
     return np.var(cur)
 
-
-# wrapper functions ------------------------------------------------
+# wrapper functions 
 def curvature_data(states, actions, state_eval=curvature_math, action_eval=None):
 
     state_cur=[]
@@ -83,23 +81,26 @@ def curvature_data(states, actions, state_eval=curvature_math, action_eval=None)
         res=np.array([state_cur,action_cur])
     return res
 
-
-def curvature_data_hist(adata,hdata, labels=['ASD','Ctrl'],color=['r','b'],eval=curvature_math):
+def curvature_data_hist(adata,hdata, labels=['ASD','NT'],color=['r','b'],eval=curvature_math):
     # get data
     (astates,aactions,atasks,aindls),(hstates,hactions,htasks,hindls)=adata,hdata
     ares=curvature_data([astates[i] for i in aindls],[aactions[i] for i in aindls], state_eval=eval, action_eval=None)
     hres=curvature_data([hstates[i] for i in aindls],[hactions[i] for i in hindls], state_eval=eval, action_eval=None)
     # plot hist
-    with initiate_plot(3, 3,300) as fig:
+    with initiate_plot(2, 3,300) as fig:
         ax=fig.add_subplot(111)
         ax.bar([1,2],[np.mean(ares),np.mean(hres)], yerr=[np.std(ares),np.std(hres)],color=color)
         ax.set_xticks([1,2])
         ax.set_xticklabels(labels)
         ax.set_ylabel('curvature')
+        ax.set_yticks([0,0.5])
         quickspine(ax)
+    return ax
 
 
-# visualize the path and curvature ----------------------------------------------
+# visualize the path and curvature ---------------------------
+
+# for one task
 ind=np.random.randint(0,len(atasks))
 thetask=atasks[ind]
 aindls=similar_trials(ind, atasks,ntrial=5)
@@ -120,7 +121,7 @@ ares=curvature_data([astates[i] for i in aindls],[aactions[i] for i in aindls], 
 hres=curvature_data([hstates[i] for i in aindls],[hactions[i] for i in hindls], state_eval=curvature_math, action_eval=None)
 stats.ttest_ind(ares, hres)
 
-
+# for one given task
 thetask=[2,2]
 aindls=similar_trials2this(atasks, thetask,ntrial=5)
 hindls=similar_trials2this(htasks,thetask,ntrial=5)
@@ -131,6 +132,43 @@ subsethstates=[hstates[i] for i in hindls]
 # subsethstates=avg_states(subsethstates)
 plotoverhead_simple(subsethstates,thetask,ax=ax,label='Control')
 ax.get_figure()
+
+
+# for all side tasks --------
+
+# get the side tasks )
+degree=30
+ares, hres=[],[]
+for ind, task in enumerate(atasks):
+    d,a=xy2pol(task, rotation=False)
+    # if  env.min_angle/2<=a<env.max_angle/2:
+    if a<=-pi/180*degree or a>=pi/180*degree:
+        ares.append(ind)
+for ind, task in enumerate(htasks):
+    d,a=xy2pol(task, rotation=False)
+    # if  env.min_angle/2<=a<env.max_angle/2:
+    if a<=-pi/180*degree or a>=pi/180*degree:
+        hres.append(ind)
+aindls=np.array(ares)
+hindls=np.array(hres)
+
+# test stats
+ares=curvature_data([astates[i] for i in aindls],[aactions[i] for i in aindls], state_eval=curvature_math, action_eval=None)
+hres=curvature_data([hstates[i] for i in hindls],[hactions[i] for i in hindls], state_eval=curvature_math, action_eval=None)
+print(stats.ttest_ind(ares, hres, alternative=
+'less'))
+
+plt.hist(ares, density=True, bins=99)
+plt.hist(hres, density=True, bins=99, alpha=0.5)
+plt.xlim(0,2)
+
+# plot
+ax=curvature_data_hist((astates,aactions,atasks,aindls),(hstates,hactions,htasks,hindls), labels=['ASD','Ctrl'],eval=curvature_math)
+# quicksave('side tasks path curvature asd vs nt',fig=ax.get_figure())
+
+
+
+
 
 # vary theta and plot curvature -------------------------------------
 

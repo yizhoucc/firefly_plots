@@ -71,227 +71,6 @@ for invtag in ['h','a']:
             asd_data_set['data'+thesub]=states, actions, tasks
         
 
-# frequency of action changes ------------------------------
-with open('/data/human/woagroup','rb') as f:
-    _,aactions,_=pickle.load(f)
-with open('/data/human/wohgroup','rb') as f:
-    _,hactions,_=pickle.load(f)
-
-atmp=[ np.diff( np.linalg.norm(np.array(a), axis=1) ) for a in aactions]
-achanges=[]
-for trial in atmp:
-    for d in trial:
-        # if d>0:
-            achanges.append(d)
-
-htmp=[ np.diff( np.linalg.norm(np.array(a), axis=1) ) for a in hactions]
-hchanges=[]
-for trial in htmp:
-    for d in trial:
-        # if d>0:
-            hchanges.append(d)
-
-with initiate_plot(3,2, 300) as f:
-    ax=f.add_subplot(111)
-    ax.hist(achanges, density=True, bins=999,alpha=0.5, color='r', label='ASD')
-    ax.hist(hchanges, density=True, bins=999, alpha=0.5, color='b', label='NT')
-    ax.set_title('ctrl change')
-    ax.set_xlabel('ctrl changes per dt')
-    ax.set_ylabel('probability')
-    plt.xlim(-0.1,0.2)
-    quickspine(ax)
-    quickleg(ax)
-    # quicksave('dev action cost compared')
-
-# frequency of action changes, angular only ------------------------------
-with open('/data/human/woagroup','rb') as f:
-    _,aactions,_=pickle.load(f)
-with open('/data/human/wohgroup','rb') as f:
-    _,hactions,_=pickle.load(f)
-
-atmp=[ (np.power(relu(np.diff(np.array(a)[:,1], axis=0)),2)) for a in aactions]
-achanges=[]
-for trial in atmp:
-    for d in trial:
-        if d>1e-4:
-            achanges.append(d)
-
-htmp=[ (np.power(relu(np.diff(np.array(a)[:,1], axis=0)),2)) for a in hactions]
-hchanges=[]
-for trial in htmp:
-    for d in trial:
-        if d>1e-4:
-            hchanges.append(d)
-
-achanges,hchanges = np.array(achanges),np.array(hchanges)
-with initiate_plot(3,2, 300) as f:
-    xrange=[0,0.005]
-    ax=f.add_subplot(111)
-    ax.hist(achanges[achanges<xrange[1]], density=True, bins=99,alpha=0.5, color='r', label='ASD')
-    ax.hist(hchanges[hchanges<xrange[1]], density=True, bins=99, alpha=0.5, color='b', label='NT')
-    ax.set_title('ctrl change')
-    ax.set_xlabel('ctrl changes per dt')
-    ax.set_ylabel('probability')
-    plt.xlim(xrange)
-    quickspine(ax)
-    quickleg(ax)
-    # quicksave('dev action cost compared')
-
-# focuos on larger changes -------------------------------
-thresholds=np.linspace(0.1,0.5,33)
-acounts=[]
-for th in thresholds:
-    acounts.append(sum([ len(np.where( (np.power(relu(np.diff(np.linalg.norm(np.array(a), axis=1), axis=0)),2)) >th)[0]) for a in aactions]))
-hcounts=[]
-for th in thresholds:
-    hcounts.append(sum([ len(np.where( (np.power(relu(np.diff(np.linalg.norm(np.array(a), axis=1), axis=0)),2)) >th)[0]) for a in hactions]))
-
-
-with initiate_plot(3,2, 300) as f:
-    ax=f.add_subplot(111)
-    ax.plot(thresholds,np.array(acounts)/sum([len(a) for a in aactions]),color='r', label='ASD')
-    ax.plot(thresholds,np.array(hcounts)/sum([len(a) for a in hactions]), color='b', label='NT')
-    ax.set_title('ctrl change')
-    ax.set_xlabel('ctrl changes amplitude')
-    ax.set_ylabel('probability')
-    quickspine(ax)
-    quickleg(ax)
-    # quicksave('dev action cost compared')
-
-# cumulative probability plot
-with initiate_plot(3,2, 300) as f:
-    ax=f.add_subplot(111)
-    ax.plot(thresholds,np.cumsum(np.array(acounts)/sum([len(a) for a in aactions])),color='r', label='ASD')
-    ax.plot(thresholds,np.cumsum(np.array(hcounts)/sum([len(a) for a in hactions])), color='b', label='NT')
-    ax.set_title('ctrl change > 0.1')
-    ax.set_xlabel('ctrl changes amplitude')
-    ax.set_ylabel('cumulative probability')
-    quickspine(ax)
-    quickleg(ax)
-    # quicksave('cumulative prob for control change > 0.1')
-
-
-# focuos on larger changes, angular only ----------------
-thresholds=np.linspace(0.01,0.5,33)
-acounts=[]
-for th in thresholds:
-    acounts.append(sum([ len(np.where( (np.power(relu(np.diff(np.array(a)[:,1], axis=0)),2)) >th)[0]) for a in aactions]))
-hcounts=[]
-for th in thresholds:
-    hcounts.append(sum([ len(np.where( (np.power(relu(np.diff(np.array(a)[:,1], axis=0)),2)) >th)[0]) for a in hactions]))
-
-with initiate_plot(3,2, 300) as f:
-    ax=f.add_subplot(111)
-    ax.plot(thresholds,np.array(acounts)/sum([len(a) for a in aactions]),color='r', label='ASD')
-    ax.plot(thresholds,np.array(hcounts)/sum([len(a) for a in hactions]), color='b', label='NT')
-    ax.set_title('ctrl change')
-    ax.set_xlabel('ctrl changes amplitude')
-    ax.set_ylabel('probability')
-    quickspine(ax)
-    quickleg(ax)
-    # quicksave('dev action cost compared')
-max(np.array(acounts)/sum([len(a) for a in aactions])-np.array(hcounts)/sum([len(a) for a in hactions]))
-
-
-
-# focuos on larger changes at begining-------------------------------
-with initiate_plot(3,2, 300) as f:
-    ax=f.add_subplot(111)
-    for t in range(1,20,3):
-        # thresholds=np.linspace(0.001,0.5,33)
-        xs=np.linspace(np.log(0.01),np.log(1.5),33)
-        thresholds=np.exp(xs)
-        acounts=[]
-        for th in thresholds:
-            acounts.append(sum([ len(np.where( (np.power(relu(np.diff(np.linalg.norm(np.array(a)[:t], axis=1), axis=0)),2)) >th)[0]) for a in aactions]))
-        hcounts=[]
-        for th in thresholds:
-            hcounts.append(sum([ len(np.where( (np.power(relu(np.diff(np.linalg.norm(np.array(a)[:t], axis=1), axis=0)),2)) >th)[0]) for a in hactions]))
-
-        ax.plot(thresholds,np.array(acounts)/sum([len(a) for a in aactions]),color='r', label='ASD')
-        ax.plot(thresholds,np.array(hcounts)/sum([len(a) for a in hactions]), color='b', label='NT')
-    ax.set_title('ctrl change')
-    ax.set_xlabel('ctrl changes amplitude')
-    ax.set_ylabel('probability')
-    quickspine(ax)
-    quickleg(ax)
-    # quicksave('dev action cost compared')
-
-# magnitude of actions ------------------------------
-atmp=[ ( np.linalg.norm(np.array(a), axis=1) ) for a in aactions]
-achanges=[]
-for trial in atmp:
-    for d in trial:
-        if d>0:
-            achanges.append(d)
-
-htmp=[ ( np.linalg.norm(np.array(a), axis=1) ) for a in hactions]
-hchanges=[]
-for trial in htmp:
-    for d in trial:
-        if d>0:
-            hchanges.append(d)
-with initiate_plot(3,2, 300) as f:
-    ax=f.add_subplot(111)
-    ax.hist(achanges, density=True, bins=99,alpha=0.5, color='r', label='ASD')
-    ax.hist(hchanges, density=True, bins=99, alpha=0.5, color='b', label='NT')
-    ax.set_title('ctrl magnitude')
-    ax.set_xlabel('ctrl magnitude')
-    ax.set_ylabel('probability')
-    quickspine(ax)
-    quickleg(ax)
-    # quicksave('mag action cost compared')
-
-
-# magnitude of actions, angular ------------------------------
-atmp=[ (np.array(a)[:,1] ) for a in aactions]
-achanges=[]
-for trial in atmp:
-    for d in trial:
-        if d>0:
-            achanges.append(d)
-
-htmp=[ ( np.array(a)[:,1]) for a in hactions]
-hchanges=[]
-for trial in htmp:
-    for d in trial:
-        if d>0:
-            hchanges.append(d)
-with initiate_plot(3,2, 300) as f:
-    ax=f.add_subplot(111)
-    ax.hist(achanges, density=True, bins=99,alpha=0.5, color='r', label='ASD')
-    ax.hist(hchanges, density=True, bins=99, alpha=0.5, color='b', label='NT')
-    ax.set_title('ctrl magnitude')
-    ax.set_xlabel('ctrl magnitude')
-    ax.set_ylabel('probability')
-    quickspine(ax)
-    quickleg(ax)
-    # quicksave('mag action cost compared')
-
-# magnitude of actions, forward ------------------------------
-atmp=[ (np.array(a)[:,0] ) for a in aactions]
-achanges=[]
-for trial in atmp:
-    for d in trial:
-        if d>0:
-            achanges.append(d)
-
-htmp=[ ( np.array(a)[:,0]) for a in hactions]
-hchanges=[]
-for trial in htmp:
-    for d in trial:
-        if d>0:
-            hchanges.append(d)
-with initiate_plot(3,2, 300) as f:
-    ax=f.add_subplot(111)
-    ax.hist(achanges, density=True, bins=99,alpha=0.5, color='r', label='ASD')
-    ax.hist(hchanges, density=True, bins=99, alpha=0.5, color='b', label='NT')
-    ax.set_title('ctrl magnitude')
-    ax.set_xlabel('ctrl magnitude')
-    ax.set_ylabel('probability')
-    quickspine(ax)
-    quickleg(ax)
-    # quicksave('mag action cost compared')
 
 
 
@@ -332,7 +111,7 @@ for thesub in asd_data_endpoint_polar.keys():
     plt.show()
 
 
-# as a group, linear regression of the angular err ---------------------------------------
+# as a group, linear regression of the angular err 
 xa, ya, xh, yh =[],[],[],[]
 for thesub in asd_data_endpoint_polar.keys():
     (endpoint, tasks)=asd_data_endpoint_polar[thesub]
@@ -348,8 +127,7 @@ stats.linregress(xa,ya)
 stats.linregress(xh, yh)
 
 
-
-# as a group, linear regression of the radial err ---------------------------------------
+# as a group, linear regression of the radial err 
 xa, ya, xh, yh =[],[],[],[]
 for thesub in asd_data_endpoint_polar.keys():
     (endpoint, tasks)=asd_data_endpoint_polar[thesub]
@@ -365,8 +143,7 @@ stats.linregress(xa,ya)
 stats.linregress(xh, yh)
 
 
-
-# per sub, linear regression of the angular err ---------------------------------------
+# per sub, linear regression of the angular err 
 xa, ya, xh, yh =[],[],[],[]
 ares, hres=[],[]
 for thesub in asd_data_endpoint_polar.keys():
@@ -388,7 +165,7 @@ npsummary([a.pvalue for a in ares])
 npsummary([a.pvalue for a in hres])
 
 
-# per sub, linear regression of the radial err ---------------------------------------
+# per sub, linear regression of the radial err 
 xa, ya, xh, yh =[],[],[],[]
 ares, hres=[],[]
 for thesub in asd_data_endpoint_polar.keys():
@@ -404,10 +181,10 @@ npsummary([a.slope for a in hres])
 stats.ttest_ind([a.slope for a in ares],[a.slope for a in hres])
 
 
-# per sub, error of first half vs later half ---------------------------------------
+# per sub, error of first half vs later half 
 xa, ya, xh, yh =[],[],[],[]
-ares, hres=[],[]
-ares2, hres2=[],[]
+ares, hres=[],[] # first half
+ares2, hres2=[],[] # latter half
 for thesub in asd_data_endpoint_polar.keys():
     (endpoint, tasks)=asd_data_endpoint_polar[thesub]
     
@@ -418,8 +195,10 @@ for thesub in asd_data_endpoint_polar.keys():
         hres.append(stats.linregress(tasks[:75,0],endpoint[:75,0]))
         hres2.append(stats.linregress(tasks[75:,0],endpoint[75:,0]))
 
-stats.ttest_ind([a.slope for a in ares],[a.slope for a in hres]) # angular
+stats.ttest_ind([a.slope for a in ares],[a.slope for a in ares2])
+stats.ttest_ind([a.slope for a in hres],[a.slope for a in hres2])
 
+# radial
 xa, ya, xh, yh =[],[],[],[]
 ares, hres=[],[]
 ares2, hres2=[],[]
@@ -433,12 +212,11 @@ for thesub in asd_data_endpoint_polar.keys():
         hres.append(stats.linregress(tasks[:75,1],endpoint[:75,1]))
         hres2.append(stats.linregress(tasks[75:,1],endpoint[75:,1]))
 
-stats.ttest_ind([a.slope for a in ares],[a.slope for a in hres]) # radial
+stats.ttest_ind([a.slope for a in ares],[a.slope for a in ares2])
+stats.ttest_ind([a.slope for a in hres],[a.slope for a in hres2])
 
 
-
-
-# angular err
+# angular err ------------------------
 with initiate_plot(3,3,300) as f:
     ax=f.add_subplot(111)
     for thesub in asd_data_endpoint_polar.keys():
@@ -461,23 +239,23 @@ with initiate_plot(6,3,300) as f:
         if thesub[0]=='a': 
             color='r'
             (endpoint, tasks)=asd_data_endpoint_polar[thesub]
-            ax1.scatter(tasks[:,0],endpoint[:,0],color=color, s=0.5)
+            ax1.scatter(tasks[:,0]*180/pi,endpoint[:,0]*180/pi,color=color, s=0.5)
         else: 
             color='b'
             (endpoint, tasks)=asd_data_endpoint_polar[thesub]
-            ax2.scatter(tasks[:,0],endpoint[:,0],color=color, s=0.5)
-    ax1.set_xlim(-0.7,0.7)
-    ax1.set_ylim(-1,1)
+            ax2.scatter(tasks[:,0]*180/pi,endpoint[:,0]*180/pi,color=color, s=0.5)
+    ax1.set_xlim(-42,42)
+    ax1.set_ylim(-70,70)
     quickspine(ax1)
     quickspine(ax2)
-    ax1.set_xlabel('target angle')
-    ax2.set_xlabel('target angle')
-    ax1.set_ylabel('response angle')
-    ax1.plot([-0.7,.7],[-0.7,.7],'k')
-    ax2.plot([-0.7,.7],[-0.7,.7],'w')
+    ax1.set_xlabel('target angle [degree]')
+    ax2.set_xlabel('target angle [degree]')
+    ax1.set_ylabel('response angle [degree]')
+    ax1.plot([-50,50],[-50,50],'k')
+    ax2.plot([-50,50],[-50,50],'w')
     # quicksave('asd angular err sep')
 
-# radial err
+# radial err ------------------------
 with initiate_plot(3,3,300) as f:
     ax=f.add_subplot(111)
     for thesub in asd_data_endpoint_polar.keys():
@@ -493,7 +271,6 @@ with initiate_plot(3,3,300) as f:
     ax.plot([-0.7,3],[-0.7,3],'k')
     # quicksave('asd radiual err')
 
-
 with initiate_plot(6,3,300) as f:
     ax1=f.add_subplot(121)
     ax2=f.add_subplot(122, sharex=ax1, sharey=ax1)
@@ -501,24 +278,55 @@ with initiate_plot(6,3,300) as f:
         if thesub[0]=='a': 
             color='r'
             (endpoint, tasks)=asd_data_endpoint_polar[thesub]
-            ax1.scatter(tasks[:,1],endpoint[:,1],color=color, s=0.5)
+            ax1.scatter(tasks[:,1]*2,endpoint[:,1]*2,color=color, s=0.5)
         else: 
             color='b'
             (endpoint, tasks)=asd_data_endpoint_polar[thesub]
-            ax2.scatter(tasks[:,1],endpoint[:,1],color=color, s=0.5)
-    ax1.set_xlim(0.5,None)
+            ax2.scatter(tasks[:,1]*2,endpoint[:,1]*2,color=color, s=0.5)
+    ax1.set_xlim(1,6)
     ax1.set_ylim(0,None)
     quickspine(ax1)
     quickspine(ax2)
-    ax1.set_xlabel('target distance')
-    ax2.set_xlabel('target distance')
-    ax1.set_ylabel('response distance')
-    ax1.plot([-0.7,3],[-0.7,3],'k')
-    ax2.plot([-0.7,3],[-0.7,3],'w')
+    ax1.set_xlabel('target distance [m]')
+    ax2.set_xlabel('target distance [m]')
+    ax1.set_ylabel('response distance [m]')
+    ax1.plot([1,6],[1,6],'k')
+    ax2.plot([1,6],[1,6],'w')
+    ax1.set_xticks([1,6])
+    ax2.set_xticks([1,6])
+    ax1.set_yticks([1,6,10])
+    ax2.set_yticks([1,6,10])
     # quicksave('asd radiual err sep')
 
+# one example sub
+with initiate_plot(6,3,300) as f:
+    ax1=f.add_subplot(121)
+    ax2=f.add_subplot(122, sharex=ax1, sharey=ax1)
+    for thesub in [list(asd_data_endpoint_polar.keys())[0],list(asd_data_endpoint_polar.keys())[-1]]:
+        if thesub[0]=='a': 
+            color='r'
+            (endpoint, tasks)=asd_data_endpoint_polar[thesub]
+            ax1.scatter(tasks[:,1]*2,endpoint[:,1]*2,color=color, s=5)
+        else: 
+            color='b'
+            (endpoint, tasks)=asd_data_endpoint_polar[thesub]
+            ax2.scatter(tasks[:,1]*2,endpoint[:,1]*2,color=color, s=5)
+    ax1.set_xlim(0.5,6)
+    ax1.set_ylim(0,None)
+    quickspine(ax1)
+    quickspine(ax2)
+    ax1.set_xlabel('target distance m')
+    ax2.set_xlabel('target distance m')
+    ax1.set_ylabel('response distance m')
+    ax1.plot([1,6],[1,6],'k')
+    ax2.plot([0,6],[0,6],'k')
+    ax1.set_xticks([1,6])
+    ax2.set_xticks([1,6])
+    ax1.set_yticks([1,6])
+    ax2.set_yticks([1,6])
+    # quicksave('asd radiual err sep example sub')
 
-# error of first half vs later half (no obvious learning happends) ------------------------
+# error of first half vs later half (showing no learning) ------------------------
 with initiate_plot(5,5,300) as f:
     ax1=f.add_subplot(221)
     ax2=f.add_subplot(222, sharex=ax1, sharey=ax1)
@@ -623,6 +431,8 @@ accs=[ (len(err[:,0][err[:,0]<0.13])/len(err[:,0])) for _,err in polar_err.items
 npsummary(accs[:numhsub])
 npsummary(accs[numhsub:])
 
+
+
 # ttest of angular err---------------------------------------
 xa, ya, xh, yh =[],[],[],[]
 ares, hres=[],[]
@@ -682,14 +492,6 @@ X = X[np.logical_or(Y==0,Y==1)][:,:8]
 Y = Y[np.logical_or(Y==0,Y==1)]
 model = svm.SVC(kernel='linear')
 clf = model.fit(X, Y)
-def f_importances(coef, names):
-    imp = coef
-    imp,names = zip(*sorted(zip(imp,names)))
-    plt.barh(range(len(names)), imp, align='center')
-    plt.yticks(range(len(names)), names)
-    plt.xlabel('parameter coef')
-    ax=plt.gca()
-    quickspine(ax)
 f_importances(np.abs(clf.coef_[0]),['rad resp', 'ang resp', 'rad err', 'ang err'])
 
 print('''
@@ -762,7 +564,7 @@ for invtag in ['h','a']:
         if 'data'+thesub in asd_data_set:
             _,actions,tasks=asd_data_set['data'+thesub]
             paddedv=pad_to_dense([np.array(a[:,0]) for a in actions],maxlen=maxlen)
-            paddedw=pad_to_dense([np.array(a[:,1]) for a in actions],maxlen=maxlen)
+            paddedw=pad_to_dense([np.array(a[:,1])*sign for sign, a in zip(np.array(tasks[:,1]>0, dtype=int)*-1, actions)],maxlen=maxlen)
             allsamples.append(np.hstack([tasks,paddedv,paddedw]))
             if invtag=='a':
                 alltag+=[1]*len(actions)
@@ -778,32 +580,32 @@ X = X[np.logical_or(Y==0,Y==1)][:,:]
 Y = Y[np.logical_or(Y==0,Y==1)]
 model = svm.SVC(kernel='linear')
 clf = model.fit(X, Y)
-f_importances(np.abs(clf.coef_[0][2:]),list(range(9)))
+# f_importances(np.abs(clf.coef_[0][2:]),list(range(9)))
 # quicksave('svm trajectory weights')
 
 with initiate_plot(5,2,300) as f:
-    vwcoef=np.abs(clf.coef_[0][2:])
+    vwcoef=(clf.coef_[0][2:])
     maxcoef=max(vwcoef)
     normvwcoef=vwcoef/maxcoef
     ax=f.add_subplot(121)
-    ax.plot((normvwcoef[:maxlen]))
+    ax.plot(np.linspace(0,maxlen/10,maxlen),(normvwcoef[:maxlen]), color='k')
     quickspine(ax)
-    ax.set_xlabel('time dt')
+    ax.set_xlabel('time s')
     ax.set_ylabel('v control coef')
-    ax.set_ylim(0,1)
-    ax.set_xlim(0,)
-    ax=f.add_subplot(122)
-    ax.plot((normvwcoef[maxlen:]))
+    # ax.set_ylim(0,1)
+    ax.set_xlim(-1,15)
+    ax=f.add_subplot(122, sharey=ax)
+    ax.plot(np.linspace(0,maxlen/10,maxlen),(normvwcoef[maxlen:]), color='k')
     quickspine(ax)
-    ax.set_xlabel('time dt')
+    ax.set_xlabel('time s')
     ax.set_ylabel('w control coef')
-    ax.set_ylim(0,1)
-    ax.set_xlim(0,)
+    # ax.set_ylim(0,1)
+    ax.set_xlim(-1,15)
     # quicksave('v and w coef of trajectory svm')
 
 with initiate_plot(5,2,300) as f:
     smoothconvwindow=22
-    vwcoef=np.abs(clf.coef_[0][2:])
+    vwcoef=(clf.coef_[0][2:])
     vcoef=smooth(vwcoef[:maxlen], smoothconvwindow)
     wcoef=smooth(vwcoef[maxlen:], smoothconvwindow)
     maxcoef=max(max(vcoef), max(wcoef))
@@ -813,14 +615,14 @@ with initiate_plot(5,2,300) as f:
     quickspine(ax)
     ax.set_xlabel('time dt')
     ax.set_ylabel('v control coef')
-    ax.set_ylim(0,1)
+    # ax.set_ylim(0,1)
     ax.set_xlim(0,)
     ax=f.add_subplot(122)
     ax.plot(wcoef)
     quickspine(ax)
     ax.set_xlabel('time dt')
     ax.set_ylabel('w control coef')
-    ax.set_ylim(0,1)
+    # ax.set_ylim(0,1)
     ax.set_xlim(0,)
     # quicksave('v and w coef of trajectory svm smooth kernalsize{}'.format(smoothconvwindow))
 
@@ -890,486 +692,6 @@ for i, (s,e) in enumerate(zip(cumsum[:-1], cumsum[1:])):
 # quicksave('asd behavior trajectory svm')
 print('the other peak suggest asd behavior. still they are mixed')
 
-
-
-
-# individual action cost and control onset -----------------------------------
-
-# version 1, cost vs time
-ind=np.random.randint(low=0, high=len(tasks))
-thetask=tasks[ind]
-
-ax=plt.subplot()
-invtag='h'
-ax1,ax2=None, None
-for isub in range(numhsub):
-    thesub="{}sub{}".format(invtag,str(isub))
-    k='res'+thesub
-    if k in asd_data_set:
-        theta=asd_data_set[k][0]
-        costs=theta[-4:-2]
-        k='data'+thesub
-        _,actions,tasks=asd_data_set[k]
-        indls=similar_trials2this(tasks, thetask, ntrial=2)
-        subactions=[actions[i] for i in indls]
-        subtasks=tasks[indls]
-        costs=[np.linalg.norm(np.diff(a,axis=0),axis=1)  for a in subactions]
-        for c in costs:
-            ax.plot(c,'b',linewidth=0.5)
-#         ax1,ax2=plotctrlasd(subactions,ax1=ax1,ax2=ax2)
-# ax1.get_figure()
-
-ax=plt.subplot()
-invtag='a'
-ax1,ax2=None, None
-for isub in range(numhsub):
-    thesub="{}sub{}".format(invtag,str(isub))
-    k='res'+thesub
-    if k in asd_data_set:
-        theta=asd_data_set[k][0]
-        costs=theta[-4:-2]
-        k='data'+thesub
-        _,actions,tasks=asd_data_set[k]
-        indls=similar_trials2this(tasks, thetask, ntrial=2)
-        subactions=[actions[i] for i in indls]
-        subtasks=tasks[indls]
-        costs=[np.linalg.norm(np.diff(a,axis=0),axis=1)  for a in subactions]
-        for c in costs:
-            x=np.arange(0,-len(c),-1)
-            ax.plot(x,c,'r',linewidth=0.5)
-#         ax1,ax2=plotctrlasd(subactions,ax1=ax1,ax2=ax2)
-# ax1.get_figure()
-
-# version2, cumsum, two side
-ind=np.random.randint(low=0, high=len(tasks))
-thetask=tasks[ind]
-# subjective cost, cost*param
-with initiate_plot(3,3,300) as f:
-    ntrial=3
-    dtlim=20
-    ax=f.add_subplot(111)
-    cm_subsection = linspace(0,1, 25) 
-    colors = [ cm.gist_heat(x) for x in cm_subsection ]
-    invtag='a'
-    for isub in range(numhsub):
-        thesub="{}sub{}".format(invtag,str(isub))
-        k='res'+thesub
-        if k in asd_data_set:
-            theta=asd_data_set[k][0]
-            costparams=theta[-4:-2]
-            k='data'+thesub
-            _,actions,tasks=asd_data_set[k]
-            indls=similar_trials2this(tasks, thetask, ntrial=ntrial)
-            subactions=[actions[i] for i in indls]
-            # subtasks=tasks[indls]
-            costs=[np.linalg.norm(np.diff(a,axis=0)*np.array(costparams).reshape(-1),axis=1)  for a in subactions]
-            minlen=min([len(a) for a in costs])
-            costsmu=np.mean(np.stack([a[:minlen] for a in costs]), axis=0)
-            x=np.arange(0,-len(costsmu[:dtlim]),-1)
-            ax.plot(x,np.cumsum(costsmu[:dtlim]),color=colors[isub],linewidth=0.5)
-    invtag='h'
-    cm_subsection = linspace(0, 0.5, 25) 
-    colors = [ cm.winter(x) for x in cm_subsection ]
-    for isub in range(numhsub):
-        thesub="{}sub{}".format(invtag,str(isub))
-        k='res'+thesub
-        if k in asd_data_set:
-            theta=asd_data_set[k][0]
-            costparams=theta[-4:-2]
-            k='data'+thesub
-            _,actions,tasks=asd_data_set[k]
-            indls=similar_trials2this(tasks, thetask, ntrial=ntrial)
-            subactions=[actions[i] for i in indls]
-            # subtasks=tasks[indls]
-            costs=[np.linalg.norm(np.diff(a,axis=0)*np.array(costparams).reshape(-1),axis=1)  for a in subactions]
-            minlen=min([len(a) for a in costs])
-            costsmu=np.mean(np.stack([a[:minlen] for a in costs]), axis=0)
-            ax.plot(np.cumsum(costsmu[:dtlim]),color=colors[isub],linewidth=0.5)
-    quickleg(ax)
-    quickspine(ax)
-    ax.set_xlabel('time, dt')
-    ax.set_ylabel('cumulative subjective cost')
-    # quicksave('cumsum subjective cost asd vs nt for particular target ind={}'.format(ind))
-
-# objective cost, no cost param
-with initiate_plot(3,3,300) as f:
-    ntrial=3
-    dtlim=20
-    ax=f.add_subplot(111)
-    invtag='h'
-    cm_subsection = linspace(0, 0.5, 25) 
-    colors = [ cm.winter(x) for x in cm_subsection ]
-    for isub in range(numhsub):
-        thesub="{}sub{}".format(invtag,str(isub))
-        k='res'+thesub
-        if k in asd_data_set:
-            k='data'+thesub
-            _,actions,tasks=asd_data_set[k]
-            indls=similar_trials2this(tasks, thetask, ntrial=ntrial)
-            subactions=[actions[i] for i in indls]
-            costs=[np.linalg.norm(np.diff(a,axis=0),axis=1)  for a in subactions]
-            minlen=min([len(a) for a in costs])
-            costsmu=np.mean(np.stack([a[:minlen] for a in costs]), axis=0)
-            x=np.arange(0,len(costsmu[:dtlim]),1)
-            ax.plot(x,np.cumsum(costsmu[:dtlim]),color=colors[isub],linewidth=0.5)
-
-    cm_subsection = linspace(0,1, 25) 
-    colors = [ cm.gist_heat(x) for x in cm_subsection ]
-    invtag='a'
-    for isub in range(numhsub):
-        thesub="{}sub{}".format(invtag,str(isub))
-        k='res'+thesub
-        if k in asd_data_set:
-            k='data'+thesub
-            _,actions,tasks=asd_data_set[k]
-            indls=similar_trials2this(tasks, thetask, ntrial=ntrial)
-            subactions=[actions[i] for i in indls]
-            costs=[np.linalg.norm(np.diff(a,axis=0),axis=1)  for a in subactions]
-            minlen=min([len(a) for a in costs])
-            costsmu=np.mean(np.stack([a[:minlen] for a in costs]), axis=0)
-            x=np.arange(0,-len(costsmu[:dtlim]),-1)
-            ax.plot(x,np.cumsum(costsmu[:dtlim]),color=colors[isub],linewidth=0.5)
-    quickleg(ax)
-    quickspine(ax)
-    ax.set_xlabel('time, dt')
-    ax.set_ylabel('cumulative cost')
-    # quicksave('cumsum cost asd vs nt for particular target ind={}'.format(ind))
-
-# version 3, asd-nt cost overhead
-thetasks=tasks
-costdiffs=[]
-for thetask in thetasks:
-    thiscostdiff=0
-    invtag='a'
-    for isub in range(numasub):
-        thesub="{}sub{}".format(invtag,str(isub))
-        k='res'+thesub
-        if k in asd_data_set:
-            theta=asd_data_set[k][0]
-            costs=theta[-4:-2]
-            k='data'+thesub
-            _,actions,tasks=asd_data_set[k]
-            indls=similar_trials2this(tasks, thetask, ntrial=2)
-            subactions=[actions[i] for i in indls]
-            subtasks=tasks[indls]
-            costs=[np.linalg.norm(np.diff(a,axis=0),axis=1)  for a in subactions]
-            thiscostdiff+=np.mean([np.mean(c) for c in costs])/numasub
-    invtag='h'
-    for isub in range(numhsub):
-        thesub="{}sub{}".format(invtag,str(isub))
-        k='res'+thesub
-        if k in asd_data_set:
-            theta=asd_data_set[k][0]
-            costs=theta[-4:-2]
-            k='data'+thesub
-            _,actions,tasks=asd_data_set[k]
-            indls=similar_trials2this(tasks, thetask, ntrial=2)
-            subactions=[actions[i] for i in indls]
-            subtasks=tasks[indls]
-            costs=[np.linalg.norm(np.diff(a,axis=0),axis=1)  for a in subactions]
-            thiscostdiff-=np.mean([np.mean(c) for c in costs])/numhsub
-    costdiffs.append(thiscostdiff)
-
-normedcostdiffs=normalizematrix(costdiffs)
-# normedcostdiffs=np.linspace(0,10,len(thetasks))
-
-with initiate_plot(3,3,300) as f:
-    ax=f.add_subplot(111)
-    im=ax.scatter(thetasks[:,0], thetasks[:,1], c=normedcostdiffs, cmap='bwr', vmin=-1, vmax=1)
-    f.colorbar(im,ax=ax, label='ASD - NT cost')
-    quickspine(ax)
-    ax.axis('equal')
-    ax.set_xlabel('world x [2m]')
-    ax.set_ylabel('world y [2m]')
-    # quicksave('asd-nt cost overhead')
-
-# version4, cumsum same side, solid mean and fade individual
-ind=np.random.randint(low=0, high=len(tasks))
-thetask=tasks[ind]
-# subjective cost, cost*param
-with initiate_plot(3,3,300) as f:
-    ntrial=3
-    dtlim=20
-    ax=f.add_subplot(111)
-    cm_subsection = linspace(0,1, 25) 
-    colors = [ cm.gist_heat(x) for x in cm_subsection ]
-    invtag='a'
-    allsubdata=[]
-    for isub in range(numhsub):
-        thesub="{}sub{}".format(invtag,str(isub))
-        k='res'+thesub
-        if k in asd_data_set:
-            theta=asd_data_set[k][0]
-            costparams=theta[-4:-2]
-            k='data'+thesub
-            _,actions,tasks=asd_data_set[k]
-            indls=similar_trials2this(tasks, thetask, ntrial=ntrial)
-            subactions=[actions[i] for i in indls]
-            # subtasks=tasks[indls]
-            costs=[np.linalg.norm(np.diff(a,axis=0)*np.array(costparams).reshape(-1),axis=1)  for a in subactions]
-            minlen=min([len(a) for a in costs])
-            costsmu=np.mean(np.stack([a[:minlen] for a in costs]), axis=0)
-            x=np.arange(len(costsmu[:dtlim]))
-            allsubdata.append(np.cumsum(costsmu[:dtlim]))
-            ax.plot(x,np.cumsum(costsmu[:dtlim]),color='pink',linewidth=0.5)
-    minlen=min([len(a) for a in allsubdata])
-    allsubdata=[a[:minlen] for a in allsubdata]
-    allsubdata=np.array(allsubdata)
-    yerr=np.std(allsubdata,axis=0)
-    for ii in range(minlen):
-        if ii%2==0:
-            yerr[ii]=0
-    ax.errorbar(np.arange(minlen),np.mean(allsubdata,axis=0),yerr=yerr,color='r',linewidth=3)
-
-    invtag='h'
-    allsubdata=[]
-    cm_subsection = linspace(0, 0.5, 25) 
-    colors = [ cm.winter(x) for x in cm_subsection ]
-    for isub in range(numhsub):
-        thesub="{}sub{}".format(invtag,str(isub))
-        k='res'+thesub
-        if k in asd_data_set:
-            theta=asd_data_set[k][0]
-            costparams=theta[-4:-2]
-            k='data'+thesub
-            _,actions,tasks=asd_data_set[k]
-            indls=similar_trials2this(tasks, thetask, ntrial=ntrial)
-            subactions=[actions[i] for i in indls]
-            # subtasks=tasks[indls]
-            costs=[np.linalg.norm(np.diff(a,axis=0)*np.array(costparams).reshape(-1),axis=1)  for a in subactions]
-            minlen=min([len(a) for a in costs])
-            costsmu=np.mean(np.stack([a[:minlen] for a in costs]), axis=0)
-            allsubdata.append(np.cumsum(costsmu[:dtlim]))
-            ax.plot(np.cumsum(costsmu[:dtlim]),color='tab:blue',linewidth=0.5)
-    minlen=min([len(a) for a in allsubdata])
-    allsubdata=[a[:minlen] for a in allsubdata]
-    allsubdata=np.array(allsubdata)
-    yerr=np.std(allsubdata,axis=0)
-    for ii in range(minlen):
-        if ii%2!=0:
-            yerr[ii]=0
-    ax.errorbar(np.arange(minlen)+0.4,np.mean(allsubdata,axis=0),yerr=yerr,color='b',linewidth=3)
-
-    quickleg(ax)
-    quickspine(ax)
-    ax.set_xlabel('time, dt')
-    ax.set_ylabel('cumulative subjective cost')
-    # quicksave('cumsum subjective cost asd vs nt for particular target ind={}'.format(ind))
-
-# objective cost, no cost param
-with initiate_plot(3,3,300) as f:
-    ntrial=3
-    dtlim=20
-    ax=f.add_subplot(111)
-    cm_subsection = linspace(0,1, 25) 
-    colors = [ cm.gist_heat(x) for x in cm_subsection ]
-    invtag='a'
-    allsubdata=[]
-    for isub in range(numhsub):
-        thesub="{}sub{}".format(invtag,str(isub))
-        k='res'+thesub
-        if k in asd_data_set:
-            theta=asd_data_set[k][0]
-            costparams=theta[-4:-2]
-            k='data'+thesub
-            _,actions,tasks=asd_data_set[k]
-            indls=similar_trials2this(tasks, thetask, ntrial=ntrial)
-            subactions=[actions[i] for i in indls]
-            # subtasks=tasks[indls]
-            costs=[np.linalg.norm(np.diff(a,axis=0),axis=1)  for a in subactions]
-            minlen=min([len(a) for a in costs])
-            costsmu=np.mean(np.stack([a[:minlen] for a in costs]), axis=0)
-            x=np.arange(len(costsmu[:dtlim]))
-            allsubdata.append(np.cumsum(costsmu[:dtlim]))
-            ax.plot(x,np.cumsum(costsmu[:dtlim]),color='pink',linewidth=0.5)
-    minlen=min([len(a) for a in allsubdata])
-    allsubdata=[a[:minlen] for a in allsubdata]
-    allsubdata=np.array(allsubdata)
-    yerr=np.std(allsubdata,axis=0)
-    for ii in range(minlen):
-        if ii%2==0:
-            yerr[ii]=0
-    ax.errorbar(np.arange(minlen),np.mean(allsubdata,axis=0),yerr=yerr,color='r',linewidth=3)
-
-    invtag='h'
-    allsubdata=[]
-    cm_subsection = linspace(0, 0.5, 25) 
-    colors = [ cm.winter(x) for x in cm_subsection ]
-    for isub in range(numhsub):
-        thesub="{}sub{}".format(invtag,str(isub))
-        k='res'+thesub
-        if k in asd_data_set:
-            theta=asd_data_set[k][0]
-            costparams=theta[-4:-2]
-            k='data'+thesub
-            _,actions,tasks=asd_data_set[k]
-            indls=similar_trials2this(tasks, thetask, ntrial=ntrial)
-            subactions=[actions[i] for i in indls]
-            # subtasks=tasks[indls]
-            costs=[np.linalg.norm(np.diff(a,axis=0),axis=1)  for a in subactions]
-            minlen=min([len(a) for a in costs])
-            costsmu=np.mean(np.stack([a[:minlen] for a in costs]), axis=0)
-            allsubdata.append(np.cumsum(costsmu[:dtlim]))
-            ax.plot(np.cumsum(costsmu[:dtlim]),color='tab:blue',linewidth=0.5)
-    minlen=min([len(a) for a in allsubdata])
-    allsubdata=[a[:minlen] for a in allsubdata]
-    allsubdata=np.array(allsubdata)
-    yerr=np.std(allsubdata,axis=0)
-    for ii in range(minlen):
-        if ii%2!=0:
-            yerr[ii]=0
-    ax.errorbar(np.arange(minlen)+0.4,np.mean(allsubdata,axis=0),yerr=yerr,color='b',linewidth=3)
-
-    quickleg(ax)
-    quickspine(ax)
-    ax.set_xlabel('time, dt')
-    ax.set_ylabel('cumulative subjective cost')
-    # quicksave('cumsum cost asd vs nt for particular target ind={}'.format(ind))
-
-
-# control onset ----------------------------
-ind=np.random.randint(low=0, high=len(tasks))
-thetask=tasks[ind]
-
-ax=plt.subplot()
-invtag='h'
-ax1,ax2=None, None
-hgroupa=[]
-for isub in range(numhsub):
-    thesub="{}sub{}".format(invtag,str(isub))
-    k='res'+thesub
-    if k in asd_data_set:
-        theta=asd_data_set[k][0]
-        costs=theta[-4:-2]
-        k='data'+thesub
-        _,actions,tasks=asd_data_set[k]
-        indls=similar_trials2this(tasks, thetask, ntrial=2)
-        subactions=[actions[i] for i in indls]
-        subtasks=tasks[indls]
-        # meana=np.mean(np.array([np.diff(a[:7,0]) for a in subactions]), axis=0)
-        # meana=np.mean(np.array([np.diff(a[:7,1]) for a in subactions]), axis=0)
-        meana=np.mean(np.array([np.linalg.norm(np.diff(a[:7]),axis=1) for a in subactions]), axis=0)
-        ax.plot(meana,'b',linewidth=0.5)
-        hgroupa.append(meana)
-invtag='a'
-ax1,ax2=None, None
-agroupa=[]
-for isub in range(numhsub):
-    thesub="{}sub{}".format(invtag,str(isub))
-    k='res'+thesub
-    if k in asd_data_set:
-        theta=asd_data_set[k][0]
-        costs=theta[-4:-2]
-        k='data'+thesub
-        _,actions,tasks=asd_data_set[k]
-        indls=similar_trials2this(tasks, thetask, ntrial=2)
-        subactions=[actions[i] for i in indls]
-        subtasks=tasks[indls]
-        # meana=np.mean(np.array([np.diff(a[:7,0]) for a in subactions]), axis=0)
-        # meana=np.mean(np.array([np.diff(a[:7,1]) for a in subactions]), axis=0)
-        meana=np.mean(np.array([np.linalg.norm(np.diff(a[:7]),axis=1) for a in subactions]), axis=0)
-        ax.plot(meana,'r',linewidth=0.5)
-        agroupa.append(meana)
-quickspine(ax)
-# quickleg(ax)
-ax.set_xlabel('time, dt')
-ax.set_ylabel('control acceration')
-
-
-with initiate_plot(2,2,300) as fig:
-    ax=fig.add_subplot(111)
-    ax.errorbar(np.arange(len(hgroupa[0])),np.mean(np.array(hgroupa), axis=0),yerr=np.std(np.array(hgroupa), axis=0), color='b', label='NT mean')
-    ax.errorbar(np.arange(len(agroupa[0]))+0.2,np.mean(np.array(agroupa), axis=0),yerr=np.std(np.array(agroupa), axis=0), color='r', label='ASD mean')
-    quickspine(ax)
-    ax.set_xlabel('time, dt')
-    ax.set_ylabel('control acceration')
-    invtag='h'
-    ax1,ax2=None, None
-    hgroupa=[]
-    for isub in range(numhsub):
-        thesub="{}sub{}".format(invtag,str(isub))
-        k='res'+thesub
-        if k in asd_data_set:
-            theta=asd_data_set[k][0]
-            costs=theta[-4:-2]
-            k='data'+thesub
-            _,actions,tasks=asd_data_set[k]
-            indls=similar_trials2this(tasks, thetask, ntrial=2)
-            subactions=[actions[i] for i in indls]
-            subtasks=tasks[indls]
-            # meana=np.mean(np.array([np.diff(a[:7,0]) for a in subactions]), axis=0)
-            # meana=np.mean(np.array([np.diff(a[:7,1]) for a in subactions]), axis=0)
-            meana=np.mean(np.array([np.linalg.norm(np.diff(a[:7]),axis=1) for a in subactions]), axis=0)
-            ax.plot(meana,'tab:blue',linewidth=0.5, label='NT subject')
-            hgroupa.append(meana)
-    invtag='a'
-    ax1,ax2=None, None
-    agroupa=[]
-    for isub in range(numhsub):
-        thesub="{}sub{}".format(invtag,str(isub))
-        k='res'+thesub
-        if k in asd_data_set:
-            theta=asd_data_set[k][0]
-            costs=theta[-4:-2]
-            k='data'+thesub
-            _,actions,tasks=asd_data_set[k]
-            indls=similar_trials2this(tasks, thetask, ntrial=2)
-            subactions=[actions[i] for i in indls]
-            subtasks=tasks[indls]
-            # meana=np.mean(np.array([np.diff(a[:7,0]) for a in subactions]), axis=0)
-            # meana=np.mean(np.array([np.diff(a[:7,1]) for a in subactions]), axis=0)
-            meana=np.mean(np.array([np.linalg.norm(np.diff(a[:7]),axis=1) for a in subactions]), axis=0)
-            ax.plot(meana,'pink',linewidth=0.5, label='ASD subject')
-            agroupa.append(meana)
-    quickleg(ax)
-    # quicksave('asd accerate control faster v2')
-
-
-
-a,n,x=[-4,3,-5,9,-1,0,2],7,3
-for i in range(n):
-    a[i] = abs(a[i])
-
-# Sort the array
-a = sorted(a)
-print('sorted',a)
-# Assign K = N - K
-x = n - x
-
-# Count number of zeros
-z = a.count(0)
-print('n zeros',z)
-
-# If number of zeros if greater
-if (x > n - z):
-    print("-1")
-    
-for i in range(0, n, 2):
-    if x <= 0:
-        break
-
-    # Using 2nd operation convert
-    # it into one negative
-    a[i] = -a[i]
-    x -= 1
-for i in range(n - 1, -1, -1):
-    if x <= 0:
-        break
-
-    # Using 2nd operation convert
-    # it into one negative
-    if (a[i] > 0):
-        a[i] = -a[i]
-        x -= 1
-
-# Print array
-for i in range(n):
-    print(a[i], end = " ")
-
-
-
-
-list(range(10,0, -1))
 
 
 

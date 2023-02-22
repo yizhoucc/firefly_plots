@@ -18,8 +18,11 @@
 		]
       }
     },
-    "forwardPorts": [3000]
-    
+    "forwardPorts": [3000],
+    "runArgs": [
+        "--memory=12gb",
+        "--cpus=4"
+    ]
 }
 
 

@@ -3450,4 +3450,19 @@ class FireFlyPaperv2(FireFlyReady):
         return decision_info.view(1, -1)
 
 
+class FireFlyPaper2(FireFlyPaper): 
+    # only use prediction
+    # this is equal to preception model. the prediction is now integrated belief
+
+    def belief_step(self, previous_b, previous_P, o, a, task_param=None,predictiononly=False):
+
+        self.A = self.transition_matrix(previous_b, a) 
+    
+        # prediction
+        predicted_b = self.update_state(previous_b)
+        predicted_b = self.apply_action(predicted_b,a)
+        predicted_P = self.A@(previous_P)@(self.A.t())+self.Q 
+
+        return predicted_b, predicted_P
+
 

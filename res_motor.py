@@ -48,6 +48,933 @@ env.terminal_vel=0.2
 agent_=TD3.load('trained_agent/paper.zip')
 agent=agent_.actor.mu.cpu()
 
+
+
+
+
+
+# frequency of action changes ------------------------------
+with open('/data/human/woagroup','rb') as f:
+    _,aactions,_=pickle.load(f)
+with open('/data/human/wohgroup','rb') as f:
+    _,hactions,_=pickle.load(f)
+
+atmp=[ np.diff( np.linalg.norm(np.array(a), axis=1) ) for a in aactions]
+achanges=[]
+for trial in atmp:
+    for d in trial:
+        # if d>0:
+            achanges.append(d)
+
+htmp=[ np.diff( np.linalg.norm(np.array(a), axis=1) ) for a in hactions]
+hchanges=[]
+for trial in htmp:
+    for d in trial:
+        # if d>0:
+            hchanges.append(d)
+
+with initiate_plot(3,2, 300) as f:
+    ax=f.add_subplot(111)
+    ax.hist(achanges, density=True, bins=999,alpha=0.5, color='r', label='ASD')
+    ax.hist(hchanges, density=True, bins=999, alpha=0.5, color='b', label='NT')
+    ax.set_title('ctrl change')
+    ax.set_xlabel('ctrl changes per dt')
+    ax.set_ylabel('probability')
+    plt.xlim(-0.1,0.2)
+    quickspine(ax)
+    quickleg(ax)
+    # quicksave('dev action cost compared')
+
+
+# frequency of action changes, angular only ------------------------------
+with open('/data/human/woagroup','rb') as f:
+    _,aactions,_=pickle.load(f)
+with open('/data/human/wohgroup','rb') as f:
+    _,hactions,_=pickle.load(f)
+
+atmp=[ (np.power(relu(np.diff(np.array(a)[:,1], axis=0)),2)) for a in aactions]
+achanges=[]
+for trial in atmp:
+    for d in trial:
+        if d>1e-4:
+            achanges.append(d)
+
+htmp=[ (np.power(relu(np.diff(np.array(a)[:,1], axis=0)),2)) for a in hactions]
+hchanges=[]
+for trial in htmp:
+    for d in trial:
+        if d>1e-4:
+            hchanges.append(d)
+
+achanges,hchanges = np.array(achanges),np.array(hchanges)
+with initiate_plot(3,2, 300) as f:
+    xrange=[0,0.005]
+    ax=f.add_subplot(111)
+    ax.hist(achanges[achanges<xrange[1]], density=True, bins=99,alpha=0.5, color='r', label='ASD')
+    ax.hist(hchanges[hchanges<xrange[1]], density=True, bins=99, alpha=0.5, color='b', label='NT')
+    ax.set_title('ctrl change')
+    ax.set_xlabel('ctrl changes per dt')
+    ax.set_ylabel('probability')
+    plt.xlim(xrange)
+    quickspine(ax)
+    quickleg(ax)
+    # quicksave('dev action cost compared')
+
+# focuos on larger changes -------------------------------
+thresholds=np.linspace(0.1,0.5,33)
+acounts=[]
+for th in thresholds:
+    acounts.append(sum([ len(np.where( (np.power(relu(np.diff(np.linalg.norm(np.array(a), axis=1), axis=0)),2)) >th)[0]) for a in aactions]))
+hcounts=[]
+for th in thresholds:
+    hcounts.append(sum([ len(np.where( (np.power(relu(np.diff(np.linalg.norm(np.array(a), axis=1), axis=0)),2)) >th)[0]) for a in hactions]))
+
+
+with initiate_plot(3,2, 300) as f:
+    ax=f.add_subplot(111)
+    ax.plot(thresholds,np.array(acounts)/sum([len(a) for a in aactions]),color='r', label='ASD')
+    ax.plot(thresholds,np.array(hcounts)/sum([len(a) for a in hactions]), color='b', label='NT')
+    ax.set_title('ctrl change')
+    ax.set_xlabel('ctrl changes amplitude')
+    ax.set_ylabel('probability')
+    quickspine(ax)
+    quickleg(ax)
+    # quicksave('dev action cost compared')
+
+# cumulative probability plot
+with initiate_plot(3,2, 300) as f:
+    ax=f.add_subplot(111)
+    ax.plot(thresholds,np.cumsum(np.array(acounts)/sum([len(a) for a in aactions])),color='r', label='ASD')
+    ax.plot(thresholds,np.cumsum(np.array(hcounts)/sum([len(a) for a in hactions])), color='b', label='NT')
+    ax.set_title('ctrl change > 0.1')
+    ax.set_xlabel('ctrl changes amplitude')
+    ax.set_ylabel('cumulative probability')
+    quickspine(ax)
+    quickleg(ax)
+    # quicksave('cumulative prob for control change > 0.1')
+
+
+# larger changes, angular only ----------------
+thresholds=np.linspace(0.01,0.5,33)
+acounts=[]
+for th in thresholds:
+    acounts.append(sum([ len(np.where( (np.power(relu(np.diff(np.array(a)[:,1], axis=0)),2)) >th)[0]) for a in aactions]))
+hcounts=[]
+for th in thresholds:
+    hcounts.append(sum([ len(np.where( (np.power(relu(np.diff(np.array(a)[:,1], axis=0)),2)) >th)[0]) for a in hactions]))
+
+with initiate_plot(3,2, 300) as f:
+    ax=f.add_subplot(111)
+    ax.plot(thresholds,np.array(acounts)/sum([len(a) for a in aactions]),color='r', label='ASD')
+    ax.plot(thresholds,np.array(hcounts)/sum([len(a) for a in hactions]), color='b', label='NT')
+    ax.set_title('ctrl change')
+    ax.set_xlabel('ctrl changes amplitude')
+    ax.set_ylabel('probability')
+    quickspine(ax)
+    quickleg(ax)
+    # quicksave('dev action cost compared')
+max(np.array(acounts)/sum([len(a) for a in aactions])-np.array(hcounts)/sum([len(a) for a in hactions]))
+
+
+# larger changes at begining-------------------------------
+with initiate_plot(3,2, 300) as f:
+    ax=f.add_subplot(111)
+    for t in range(1,20,3):
+        # thresholds=np.linspace(0.001,0.5,33)
+        xs=np.linspace(np.log(0.01),np.log(1.5),33)
+        thresholds=np.exp(xs)
+        acounts=[]
+        for th in thresholds:
+            acounts.append(sum([ len(np.where( (np.power(relu(np.diff(np.linalg.norm(np.array(a)[:t], axis=1), axis=0)),2)) >th)[0]) for a in aactions]))
+        hcounts=[]
+        for th in thresholds:
+            hcounts.append(sum([ len(np.where( (np.power(relu(np.diff(np.linalg.norm(np.array(a)[:t], axis=1), axis=0)),2)) >th)[0]) for a in hactions]))
+
+        ax.plot(thresholds,np.array(acounts)/sum([len(a) for a in aactions]),color='r', label='ASD')
+        ax.plot(thresholds,np.array(hcounts)/sum([len(a) for a in hactions]), color='b', label='NT')
+    ax.set_title('ctrl change')
+    ax.set_xlabel('ctrl changes amplitude')
+    ax.set_ylabel('probability')
+    quickspine(ax)
+    quickleg(ax)
+    # quicksave('dev action cost compared')
+
+# magnitude of actions ------------------------------
+atmp=[ ( np.linalg.norm(np.array(a), axis=1) ) for a in aactions]
+achanges=[]
+for trial in atmp:
+    for d in trial:
+        if d>0:
+            achanges.append(d)
+
+htmp=[ ( np.linalg.norm(np.array(a), axis=1) ) for a in hactions]
+hchanges=[]
+for trial in htmp:
+    for d in trial:
+        if d>0:
+            hchanges.append(d)
+with initiate_plot(3,2, 300) as f:
+    ax=f.add_subplot(111)
+    ax.hist(achanges, density=True, bins=99,alpha=0.5, color='r', label='ASD')
+    ax.hist(hchanges, density=True, bins=99, alpha=0.5, color='b', label='NT')
+    ax.set_title('ctrl magnitude')
+    ax.set_xlabel('ctrl magnitude')
+    ax.set_ylabel('probability')
+    quickspine(ax)
+    quickleg(ax)
+    # quicksave('mag action cost compared')
+
+
+# magnitude of actions, angular ------------------------------
+atmp=[ (np.array(a)[:,1] ) for a in aactions]
+achanges=[]
+for trial in atmp:
+    for d in trial:
+        if d>0:
+            achanges.append(d)
+
+htmp=[ ( np.array(a)[:,1]) for a in hactions]
+hchanges=[]
+for trial in htmp:
+    for d in trial:
+        if d>0:
+            hchanges.append(d)
+with initiate_plot(3,2, 300) as f:
+    ax=f.add_subplot(111)
+    ax.hist(achanges, density=True, bins=99,alpha=0.5, color='r', label='ASD')
+    ax.hist(hchanges, density=True, bins=99, alpha=0.5, color='b', label='NT')
+    ax.set_title('ctrl magnitude')
+    ax.set_xlabel('ctrl magnitude')
+    ax.set_ylabel('probability')
+    quickspine(ax)
+    quickleg(ax)
+    # quicksave('mag action cost compared')
+
+# magnitude of actions, forward ------------------------------
+atmp=[ (np.array(a)[:,0] ) for a in aactions]
+achanges=[]
+for trial in atmp:
+    for d in trial:
+        if d>0:
+            achanges.append(d)
+
+htmp=[ ( np.array(a)[:,0]) for a in hactions]
+hchanges=[]
+for trial in htmp:
+    for d in trial:
+        if d>0:
+            hchanges.append(d)
+with initiate_plot(3,2, 300) as f:
+    ax=f.add_subplot(111)
+    ax.hist(achanges, density=True, bins=99,alpha=0.5, color='r', label='ASD')
+    ax.hist(hchanges, density=True, bins=99, alpha=0.5, color='b', label='NT')
+    ax.set_title('ctrl magnitude')
+    ax.set_xlabel('ctrl magnitude')
+    ax.set_ylabel('probability')
+    quickspine(ax)
+    quickleg(ax)
+    # quicksave('mag action cost compared')
+
+
+
+
+# individual action cost and control onset -----------------------------------
+asd_data_set={}
+numhsub,numasub=25,14
+fulltrainfolder='persub1cont'
+parttrainfolder='persub3of5dp'
+for invtag in ['h','a']:
+    for isub in range(numhsub):
+        thesub="{}sub{}".format(invtag,str(isub))
+        evalname=Path("/data/human/{}/evaltrain_inv{}sub{}".format(parttrainfolder,invtag,str(isub)))
+        fullinverseres=Path("/data/human/{}".format(fulltrainfolder))/"inv{}sub{}".format(invtag,str(isub))
+        partinverseres=Path("/data/human/{}".format(parttrainfolder))/"inv{}sub{}".format(invtag,str(isub))
+        # load inv res
+        if fullinverseres.is_file():
+            asd_data_set['res'+thesub]=process_inv(fullinverseres, usingbest=True, removegr=True)
+        # load data
+        if Path('/data/human/{}'.format(thesub)).is_file():
+            with open('/data/human/{}'.format(thesub), 'rb') as f:
+                states, actions, tasks = pickle.load(f)
+            print(len(states))
+            asd_data_set['data'+thesub]=states, actions, tasks
+
+
+# version 1, cost vs time
+ind=np.random.randint(low=0, high=len(tasks))
+thetask=tasks[ind]
+
+ax=plt.subplot()
+invtag='h'
+ax1,ax2=None, None
+for isub in range(numhsub):
+    thesub="{}sub{}".format(invtag,str(isub))
+    k='res'+thesub
+    if k in asd_data_set:
+        theta=asd_data_set[k][0]
+        costs=theta[-4:-2]
+        k='data'+thesub
+        _,actions,tasks=asd_data_set[k]
+        indls=similar_trials2this(tasks, thetask, ntrial=2)
+        subactions=[actions[i] for i in indls]
+        subtasks=tasks[indls]
+        costs=[np.linalg.norm(np.diff(a,axis=0),axis=1)  for a in subactions]
+        for c in costs:
+            ax.plot(c,'b',linewidth=0.5)
+#         ax1,ax2=plotctrlasd(subactions,ax1=ax1,ax2=ax2)
+# ax1.get_figure()
+
+ax=plt.subplot()
+invtag='a'
+ax1,ax2=None, None
+for isub in range(numhsub):
+    thesub="{}sub{}".format(invtag,str(isub))
+    k='res'+thesub
+    if k in asd_data_set:
+        theta=asd_data_set[k][0]
+        costs=theta[-4:-2]
+        k='data'+thesub
+        _,actions,tasks=asd_data_set[k]
+        indls=similar_trials2this(tasks, thetask, ntrial=2)
+        subactions=[actions[i] for i in indls]
+        subtasks=tasks[indls]
+        costs=[np.linalg.norm(np.diff(a,axis=0),axis=1)  for a in subactions]
+        for c in costs:
+            x=np.arange(0,-len(c),-1)
+            ax.plot(x,c,'r',linewidth=0.5)
+#         ax1,ax2=plotctrlasd(subactions,ax1=ax1,ax2=ax2)
+# ax1.get_figure()
+
+# version2, cumsum, two side
+ind=np.random.randint(low=0, high=len(tasks))
+thetask=tasks[ind]
+# subjective cost, cost*param
+with initiate_plot(3,3,300) as f:
+    ntrial=3
+    dtlim=20
+    ax=f.add_subplot(111)
+    cm_subsection = linspace(0,1, 25) 
+    colors = [ cm.gist_heat(x) for x in cm_subsection ]
+    invtag='a'
+    for isub in range(numhsub):
+        thesub="{}sub{}".format(invtag,str(isub))
+        k='res'+thesub
+        if k in asd_data_set:
+            theta=asd_data_set[k][0]
+            costparams=theta[-4:-2]
+            k='data'+thesub
+            _,actions,tasks=asd_data_set[k]
+            indls=similar_trials2this(tasks, thetask, ntrial=ntrial)
+            subactions=[actions[i] for i in indls]
+            # subtasks=tasks[indls]
+            costs=[np.linalg.norm(np.diff(a,axis=0)*np.array(costparams).reshape(-1),axis=1)  for a in subactions]
+            minlen=min([len(a) for a in costs])
+            costsmu=np.mean(np.stack([a[:minlen] for a in costs]), axis=0)
+            x=np.arange(0,-len(costsmu[:dtlim]),-1)
+            ax.plot(x,np.cumsum(costsmu[:dtlim]),color=colors[isub],linewidth=0.5)
+    invtag='h'
+    cm_subsection = linspace(0, 0.5, 25) 
+    colors = [ cm.winter(x) for x in cm_subsection ]
+    for isub in range(numhsub):
+        thesub="{}sub{}".format(invtag,str(isub))
+        k='res'+thesub
+        if k in asd_data_set:
+            theta=asd_data_set[k][0]
+            costparams=theta[-4:-2]
+            k='data'+thesub
+            _,actions,tasks=asd_data_set[k]
+            indls=similar_trials2this(tasks, thetask, ntrial=ntrial)
+            subactions=[actions[i] for i in indls]
+            # subtasks=tasks[indls]
+            costs=[np.linalg.norm(np.diff(a,axis=0)*np.array(costparams).reshape(-1),axis=1)  for a in subactions]
+            minlen=min([len(a) for a in costs])
+            costsmu=np.mean(np.stack([a[:minlen] for a in costs]), axis=0)
+            ax.plot(np.cumsum(costsmu[:dtlim]),color=colors[isub],linewidth=0.5)
+    quickleg(ax)
+    quickspine(ax)
+    ax.set_xlabel('time, dt')
+    ax.set_ylabel('cumulative subjective cost')
+    # quicksave('cumsum subjective cost asd vs nt for particular target ind={}'.format(ind))
+
+# objective cost, no cost param
+with initiate_plot(3,3,300) as f:
+    ntrial=3
+    dtlim=20
+    ax=f.add_subplot(111)
+    invtag='h'
+    cm_subsection = linspace(0, 0.5, 25) 
+    colors = [ cm.winter(x) for x in cm_subsection ]
+    for isub in range(numhsub):
+        thesub="{}sub{}".format(invtag,str(isub))
+        k='res'+thesub
+        if k in asd_data_set:
+            k='data'+thesub
+            _,actions,tasks=asd_data_set[k]
+            indls=similar_trials2this(tasks, thetask, ntrial=ntrial)
+            subactions=[actions[i] for i in indls]
+            costs=[np.linalg.norm(np.diff(a,axis=0),axis=1)  for a in subactions]
+            minlen=min([len(a) for a in costs])
+            costsmu=np.mean(np.stack([a[:minlen] for a in costs]), axis=0)
+            x=np.arange(0,len(costsmu[:dtlim]),1)
+            ax.plot(x,np.cumsum(costsmu[:dtlim]),color=colors[isub],linewidth=0.5)
+
+    cm_subsection = linspace(0,1, 25) 
+    colors = [ cm.gist_heat(x) for x in cm_subsection ]
+    invtag='a'
+    for isub in range(numhsub):
+        thesub="{}sub{}".format(invtag,str(isub))
+        k='res'+thesub
+        if k in asd_data_set:
+            k='data'+thesub
+            _,actions,tasks=asd_data_set[k]
+            indls=similar_trials2this(tasks, thetask, ntrial=ntrial)
+            subactions=[actions[i] for i in indls]
+            costs=[np.linalg.norm(np.diff(a,axis=0),axis=1)  for a in subactions]
+            minlen=min([len(a) for a in costs])
+            costsmu=np.mean(np.stack([a[:minlen] for a in costs]), axis=0)
+            x=np.arange(0,-len(costsmu[:dtlim]),-1)
+            ax.plot(x,np.cumsum(costsmu[:dtlim]),color=colors[isub],linewidth=0.5)
+    quickleg(ax)
+    quickspine(ax)
+    ax.set_xlabel('time, dt')
+    ax.set_ylabel('cumulative cost')
+    # quicksave('cumsum cost asd vs nt for particular target ind={}'.format(ind))
+
+# version 3, asd-nt cost overhead
+thetasks=tasks
+costdiffs=[]
+for thetask in thetasks:
+    thiscostdiff=0
+    invtag='a'
+    for isub in range(numasub):
+        thesub="{}sub{}".format(invtag,str(isub))
+        k='res'+thesub
+        if k in asd_data_set:
+            theta=asd_data_set[k][0]
+            costs=theta[-4:-2]
+            k='data'+thesub
+            _,actions,tasks=asd_data_set[k]
+            indls=similar_trials2this(tasks, thetask, ntrial=2)
+            subactions=[actions[i] for i in indls]
+            subtasks=tasks[indls]
+            costs=[np.linalg.norm(np.diff(a,axis=0),axis=1)  for a in subactions]
+            thiscostdiff+=np.mean([np.mean(c) for c in costs])/numasub
+    invtag='h'
+    for isub in range(numhsub):
+        thesub="{}sub{}".format(invtag,str(isub))
+        k='res'+thesub
+        if k in asd_data_set:
+            theta=asd_data_set[k][0]
+            costs=theta[-4:-2]
+            k='data'+thesub
+            _,actions,tasks=asd_data_set[k]
+            indls=similar_trials2this(tasks, thetask, ntrial=2)
+            subactions=[actions[i] for i in indls]
+            subtasks=tasks[indls]
+            costs=[np.linalg.norm(np.diff(a,axis=0),axis=1)  for a in subactions]
+            thiscostdiff-=np.mean([np.mean(c) for c in costs])/numhsub
+    costdiffs.append(thiscostdiff)
+
+normedcostdiffs=normalizematrix(costdiffs)
+# normedcostdiffs=np.linspace(0,10,len(thetasks))
+
+with initiate_plot(3,3,300) as f:
+    ax=f.add_subplot(111)
+    im=ax.scatter(thetasks[:,0], thetasks[:,1], c=normedcostdiffs, cmap='bwr', vmin=-1, vmax=1)
+    f.colorbar(im,ax=ax, label='ASD - NT cost')
+    quickspine(ax)
+    ax.axis('equal')
+    ax.set_xlabel('world x [2m]')
+    ax.set_ylabel('world y [2m]')
+    # quicksave('asd-nt cost overhead')
+
+# version4, cumsum same side, solid mean and fade individual
+ind=np.random.randint(low=0, high=len(tasks))
+thetask=tasks[ind]
+# subjective cost, cost*param
+with initiate_plot(3,3,300) as f:
+    ntrial=3
+    dtlim=20
+    ax=f.add_subplot(111)
+    cm_subsection = linspace(0,1, 25) 
+    colors = [ cm.gist_heat(x) for x in cm_subsection ]
+    invtag='a'
+    allsubdata=[]
+    for isub in range(numhsub):
+        thesub="{}sub{}".format(invtag,str(isub))
+        k='res'+thesub
+        if k in asd_data_set:
+            theta=asd_data_set[k][0]
+            costparams=theta[-4:-2]
+            k='data'+thesub
+            _,actions,tasks=asd_data_set[k]
+            indls=similar_trials2this(tasks, thetask, ntrial=ntrial)
+            subactions=[actions[i] for i in indls]
+            # subtasks=tasks[indls]
+            costs=[np.linalg.norm(np.diff(a,axis=0)*np.array(costparams).reshape(-1),axis=1)  for a in subactions]
+            minlen=min([len(a) for a in costs])
+            costsmu=np.mean(np.stack([a[:minlen] for a in costs]), axis=0)
+            x=np.arange(len(costsmu[:dtlim]))
+            allsubdata.append(np.cumsum(costsmu[:dtlim]))
+            ax.plot(x,np.cumsum(costsmu[:dtlim]),color='pink',linewidth=0.5)
+    minlen=min([len(a) for a in allsubdata])
+    allsubdata=[a[:minlen] for a in allsubdata]
+    allsubdata=np.array(allsubdata)
+    yerr=np.std(allsubdata,axis=0)
+    for ii in range(minlen):
+        if ii%2==0:
+            yerr[ii]=0
+    ax.errorbar(np.arange(minlen),np.mean(allsubdata,axis=0),yerr=yerr,color='r',linewidth=3)
+
+    invtag='h'
+    allsubdata=[]
+    cm_subsection = linspace(0, 0.5, 25) 
+    colors = [ cm.winter(x) for x in cm_subsection ]
+    for isub in range(numhsub):
+        thesub="{}sub{}".format(invtag,str(isub))
+        k='res'+thesub
+        if k in asd_data_set:
+            theta=asd_data_set[k][0]
+            costparams=theta[-4:-2]
+            k='data'+thesub
+            _,actions,tasks=asd_data_set[k]
+            indls=similar_trials2this(tasks, thetask, ntrial=ntrial)
+            subactions=[actions[i] for i in indls]
+            # subtasks=tasks[indls]
+            costs=[np.linalg.norm(np.diff(a,axis=0)*np.array(costparams).reshape(-1),axis=1)  for a in subactions]
+            minlen=min([len(a) for a in costs])
+            costsmu=np.mean(np.stack([a[:minlen] for a in costs]), axis=0)
+            allsubdata.append(np.cumsum(costsmu[:dtlim]))
+            ax.plot(np.cumsum(costsmu[:dtlim]),color='tab:blue',linewidth=0.5)
+    minlen=min([len(a) for a in allsubdata])
+    allsubdata=[a[:minlen] for a in allsubdata]
+    allsubdata=np.array(allsubdata)
+    yerr=np.std(allsubdata,axis=0)
+    for ii in range(minlen):
+        if ii%2!=0:
+            yerr[ii]=0
+    ax.errorbar(np.arange(minlen)+0.4,np.mean(allsubdata,axis=0),yerr=yerr,color='b',linewidth=3)
+
+    quickleg(ax)
+    quickspine(ax)
+    ax.set_xlabel('time, dt')
+    ax.set_ylabel('cumulative subjective cost')
+    # quicksave('cumsum subjective cost asd vs nt for particular target ind={}'.format(ind))
+
+# objective cost, no cost param
+with initiate_plot(3,3,300) as f:
+    ntrial=3
+    dtlim=20
+    ax=f.add_subplot(111)
+    cm_subsection = linspace(0,1, 25) 
+    colors = [ cm.gist_heat(x) for x in cm_subsection ]
+    invtag='a'
+    allsubdata=[]
+    for isub in range(numhsub):
+        thesub="{}sub{}".format(invtag,str(isub))
+        k='res'+thesub
+        if k in asd_data_set:
+            theta=asd_data_set[k][0]
+            costparams=theta[-4:-2]
+            k='data'+thesub
+            _,actions,tasks=asd_data_set[k]
+            indls=similar_trials2this(tasks, thetask, ntrial=ntrial)
+            subactions=[actions[i] for i in indls]
+            # subtasks=tasks[indls]
+            costs=[np.linalg.norm(np.diff(a,axis=0),axis=1)  for a in subactions]
+            minlen=min([len(a) for a in costs])
+            costsmu=np.mean(np.stack([a[:minlen] for a in costs]), axis=0)
+            x=np.arange(len(costsmu[:dtlim]))
+            allsubdata.append(np.cumsum(costsmu[:dtlim]))
+            ax.plot(x,np.cumsum(costsmu[:dtlim]),color='pink',linewidth=0.5)
+    minlen=min([len(a) for a in allsubdata])
+    allsubdata=[a[:minlen] for a in allsubdata]
+    allsubdata=np.array(allsubdata)
+    yerr=np.std(allsubdata,axis=0)
+    for ii in range(minlen):
+        if ii%2==0:
+            yerr[ii]=0
+    ax.errorbar(np.arange(minlen),np.mean(allsubdata,axis=0),yerr=yerr,color='r',linewidth=3)
+
+    invtag='h'
+    allsubdata=[]
+    cm_subsection = linspace(0, 0.5, 25) 
+    colors = [ cm.winter(x) for x in cm_subsection ]
+    for isub in range(numhsub):
+        thesub="{}sub{}".format(invtag,str(isub))
+        k='res'+thesub
+        if k in asd_data_set:
+            theta=asd_data_set[k][0]
+            costparams=theta[-4:-2]
+            k='data'+thesub
+            _,actions,tasks=asd_data_set[k]
+            indls=similar_trials2this(tasks, thetask, ntrial=ntrial)
+            subactions=[actions[i] for i in indls]
+            # subtasks=tasks[indls]
+            costs=[np.linalg.norm(np.diff(a,axis=0),axis=1)  for a in subactions]
+            minlen=min([len(a) for a in costs])
+            costsmu=np.mean(np.stack([a[:minlen] for a in costs]), axis=0)
+            allsubdata.append(np.cumsum(costsmu[:dtlim]))
+            ax.plot(np.cumsum(costsmu[:dtlim]),color='tab:blue',linewidth=0.5)
+    minlen=min([len(a) for a in allsubdata])
+    allsubdata=[a[:minlen] for a in allsubdata]
+    allsubdata=np.array(allsubdata)
+    yerr=np.std(allsubdata,axis=0)
+    for ii in range(minlen):
+        if ii%2!=0:
+            yerr[ii]=0
+    ax.errorbar(np.arange(minlen)+0.4,np.mean(allsubdata,axis=0),yerr=yerr,color='b',linewidth=3)
+
+    quickleg(ax)
+    quickspine(ax)
+    ax.set_xlabel('time, dt')
+    ax.set_ylabel('cumulative subjective cost')
+    # quicksave('cumsum cost asd vs nt for particular target ind={}'.format(ind))
+
+
+# version 5, same as 4 but use all side trials instead of similar trials
+degree=30 # only use trials that has angle > this
+# subjective cost, cost*param
+with initiate_plot(3,3,300) as f:
+    ntrial=3
+    dtlim=20
+    ax=f.add_subplot(111)
+    cm_subsection = linspace(0,1, 25) 
+    colors = [ cm.gist_heat(x) for x in cm_subsection ]
+    invtag='a'
+    allsubdata=[]
+    for isub in range(numhsub):
+        thesub="{}sub{}".format(invtag,str(isub))
+        k='res'+thesub
+        if k in asd_data_set:
+            theta=asd_data_set[k][0]
+            costparams=theta[-4:-2]
+            k='data'+thesub
+            _,actions,tasks=asd_data_set[k]
+
+            # select the side trials
+            # indls=[]
+            d,a=xy2pol(tasks.T, rotation=False)
+            indls=np.argwhere((a<=-pi/180*degree) | (a>=pi/180*degree))
+            # if a<=-pi/180*degree or a>=pi/180*degree:
+                # indls.append(ind)
+
+            subactions=[actions[i] for i in indls.reshape(-1)]
+            # subtasks=tasks[indls]
+            costs=[np.linalg.norm(np.diff(a,axis=0)*np.array(costparams).reshape(-1),axis=1)  for a in subactions]
+            minlen=min([len(a) for a in costs])
+            costsmu=np.mean(np.stack([a[:minlen] for a in costs]), axis=0)
+            x=np.arange(len(costsmu[:dtlim]))
+            allsubdata.append(np.cumsum(costsmu[:dtlim]))
+            ax.plot(x,np.cumsum(costsmu[:dtlim]),color='pink',linewidth=0.5)
+    minlen=min([len(a) for a in allsubdata])
+    allsubdata=[a[:minlen] for a in allsubdata]
+    allsubdata=np.array(allsubdata)
+    yerr=np.std(allsubdata,axis=0)
+    for ii in range(minlen):
+        if ii%2==0:
+            yerr[ii]=0
+    ax.errorbar(np.arange(minlen),np.mean(allsubdata,axis=0),yerr=yerr,color='r',linewidth=3)
+
+    invtag='h'
+    allsubdata=[]
+    cm_subsection = linspace(0, 0.5, 25) 
+    colors = [ cm.winter(x) for x in cm_subsection ]
+    for isub in range(numhsub):
+        thesub="{}sub{}".format(invtag,str(isub))
+        k='res'+thesub
+        if k in asd_data_set:
+            theta=asd_data_set[k][0]
+            costparams=theta[-4:-2]
+            k='data'+thesub
+            _,actions,tasks=asd_data_set[k]
+
+            # select the side trials
+            d,a=xy2pol(tasks.T, rotation=False)
+            indls=np.argwhere((a<=-pi/180*degree) | (a>=pi/180*degree))
+
+            subactions=[actions[i] for i in indls.reshape(-1)]
+            # subtasks=tasks[indls]
+            costs=[np.linalg.norm(np.diff(a,axis=0)*np.array(costparams).reshape(-1),axis=1)  for a in subactions]
+            minlen=min([len(a) for a in costs])
+            costsmu=np.mean(np.stack([a[:minlen] for a in costs]), axis=0)
+            allsubdata.append(np.cumsum(costsmu[:dtlim]))
+            ax.plot(np.cumsum(costsmu[:dtlim]),color='tab:blue',linewidth=0.5)
+    minlen=min([len(a) for a in allsubdata])
+    allsubdata=[a[:minlen] for a in allsubdata]
+    allsubdata=np.array(allsubdata)
+    yerr=np.std(allsubdata,axis=0)
+    for ii in range(minlen):
+        if ii%2!=0:
+            yerr[ii]=0
+    ax.errorbar(np.arange(minlen)+0.4,np.mean(allsubdata,axis=0),yerr=yerr,color='b',linewidth=3)
+
+    quickleg(ax)
+    quickspine(ax)
+    ax.set_xlabel('time, dt')
+    ax.set_ylabel('cumulative subjective cost')
+    # quicksave('cumsum subjective cost asd vs nt for particular target ind={}'.format(ind))
+
+# objective cost, no cost param
+with initiate_plot(3,3,300) as f:
+    ntrial=3
+    dtlim=20
+    ax=f.add_subplot(111)
+    cm_subsection = linspace(0,1, 25) 
+    colors = [ cm.gist_heat(x) for x in cm_subsection ]
+    invtag='a'
+    allsubdata=[]
+    for isub in range(numhsub):
+        thesub="{}sub{}".format(invtag,str(isub))
+        k='res'+thesub
+        if k in asd_data_set:
+            theta=asd_data_set[k][0]
+            costparams=theta[-4:-2]
+            k='data'+thesub
+            _,actions,tasks=asd_data_set[k]
+            indls=similar_trials2this(tasks, thetask, ntrial=ntrial)
+            subactions=[actions[i] for i in indls]
+            # subtasks=tasks[indls]
+            costs=[np.linalg.norm(np.diff(a,axis=0),axis=1)  for a in subactions]
+            minlen=min([len(a) for a in costs])
+            costsmu=np.mean(np.stack([a[:minlen] for a in costs]), axis=0)
+            x=np.arange(len(costsmu[:dtlim]))
+            allsubdata.append(np.cumsum(costsmu[:dtlim]))
+            ax.plot(x,np.cumsum(costsmu[:dtlim]),color='pink',linewidth=0.5)
+    minlen=min([len(a) for a in allsubdata])
+    allsubdata=[a[:minlen] for a in allsubdata]
+    allsubdata=np.array(allsubdata)
+    yerr=np.std(allsubdata,axis=0)
+    for ii in range(minlen):
+        if ii%2==0:
+            yerr[ii]=0
+    ax.errorbar(np.arange(minlen),np.mean(allsubdata,axis=0),yerr=yerr,color='r',linewidth=3)
+
+    invtag='h'
+    allsubdata=[]
+    cm_subsection = linspace(0, 0.5, 25) 
+    colors = [ cm.winter(x) for x in cm_subsection ]
+    for isub in range(numhsub):
+        thesub="{}sub{}".format(invtag,str(isub))
+        k='res'+thesub
+        if k in asd_data_set:
+            theta=asd_data_set[k][0]
+            costparams=theta[-4:-2]
+            k='data'+thesub
+            _,actions,tasks=asd_data_set[k]
+            indls=similar_trials2this(tasks, thetask, ntrial=ntrial)
+            subactions=[actions[i] for i in indls]
+            # subtasks=tasks[indls]
+            costs=[np.linalg.norm(np.diff(a,axis=0),axis=1)  for a in subactions]
+            minlen=min([len(a) for a in costs])
+            costsmu=np.mean(np.stack([a[:minlen] for a in costs]), axis=0)
+            allsubdata.append(np.cumsum(costsmu[:dtlim]))
+            ax.plot(np.cumsum(costsmu[:dtlim]),color='tab:blue',linewidth=0.5)
+    minlen=min([len(a) for a in allsubdata])
+    allsubdata=[a[:minlen] for a in allsubdata]
+    allsubdata=np.array(allsubdata)
+    yerr=np.std(allsubdata,axis=0)
+    for ii in range(minlen):
+        if ii%2!=0:
+            yerr[ii]=0
+    ax.errorbar(np.arange(minlen)+0.4,np.mean(allsubdata,axis=0),yerr=yerr,color='b',linewidth=3)
+
+    quickleg(ax)
+    quickspine(ax)
+    ax.set_xlabel('time, dt')
+    ax.set_ylabel('cumulative subjective cost')
+    # quicksave('cumsum cost asd vs nt for particular target ind={}'.format(ind))
+
+
+# stats of subjective and objective costs -------------------
+degree=35
+# subjective
+acost, hcost=[],[]
+minlen=10
+invtag='h'
+for isub in range(numhsub):
+    thesub="{}sub{}".format(invtag,str(isub))
+    k='res'+thesub
+    if k in asd_data_set:
+        theta=asd_data_set[k][0]
+        costparams=theta[-4:-2]
+        k='data'+thesub
+        _,actions,tasks=asd_data_set[k]
+        d,a=xy2pol(tasks.T, rotation=False)
+        indls=np.argwhere((a<=-pi/180*degree) | (a>=pi/180*degree))
+        subactions=[actions[i] for i in indls.reshape(-1)]
+        costs=[np.linalg.norm(np.diff(a,axis=0)*np.array(costparams).reshape(-1),axis=1)  for a in  subactions]
+        # minlen=min([len(a) for a in costs])
+        sumcost=([sum(c[:minlen]) for c in costs]) 
+        # sumcost=([sum(c) for c in costs]) 
+        hcost+=sumcost
+invtag='a'
+for isub in range(numasub):
+    thesub="{}sub{}".format(invtag,str(isub))
+    k='res'+thesub
+    if k in asd_data_set:
+        theta=asd_data_set[k][0]
+        costparams=theta[-4:-2]
+        k='data'+thesub
+        _,actions,tasks=asd_data_set[k]
+        d,a=xy2pol(tasks.T, rotation=False)
+        indls=np.argwhere((a<=-pi/180*degree) | (a>=pi/180*degree))
+        subactions=[actions[i] for i in indls.reshape(-1)]
+        costs=[np.linalg.norm(np.diff(a,axis=0)*np.array(costparams).reshape(-1),axis=1)  for a in  subactions]        
+        # minlen=min([len(a) for a in costs])
+        sumcost=([sum(c[:minlen]) for c in costs]) 
+        # sumcost=([sum(c) for c in costs]) 
+        acost+=sumcost
+
+plt.hist(hcost, density=True, bins=22)
+plt.hist(acost, density=True, bins=22, alpha=0.5)
+stats.ttest_ind(acost, hcost)
+
+
+# objective
+acost, hcost=[],[]
+invtag='h'
+for isub in range(numhsub):
+    thesub="{}sub{}".format(invtag,str(isub))
+    k='res'+thesub
+    if k in asd_data_set:
+        theta=asd_data_set[k][0]
+        costparams=theta[-4:-2]
+        k='data'+thesub
+        _,actions,tasks=asd_data_set[k]
+
+        d,a=xy2pol(tasks.T, rotation=False)
+        indls=np.argwhere((a<=-pi/180*degree) | (a>=pi/180*degree))
+        subactions=[actions[i] for i in indls.reshape(-1)]
+        costs=[np.linalg.norm(np.diff(a,axis=0),axis=1)  for a in subactions]
+        # minlen=min([len(a) for a in costs])
+        sumcost=([sum(c[:minlen]) for c in costs]) 
+        # sumcost=([sum(c) for c in costs]) 
+        hcost+=sumcost
+invtag='a'
+for isub in range(numasub):
+    thesub="{}sub{}".format(invtag,str(isub))
+    k='res'+thesub
+    if k in asd_data_set:
+        theta=asd_data_set[k][0]
+        costparams=theta[-4:-2]
+        k='data'+thesub
+        _,actions,tasks=asd_data_set[k]
+        d,a=xy2pol(tasks.T, rotation=False)
+        indls=np.argwhere((a<=-pi/180*degree) | (a>=pi/180*degree))
+        subactions=[actions[i] for i in indls.reshape(-1)]
+        costs=[np.linalg.norm(np.diff(a,axis=0),axis=1)  for a in subactions]        
+        # minlen=min([len(a) for a in costs])
+        sumcost=([sum(c[:minlen]) for c in costs]) 
+        # sumcost=([sum(c) for c in costs]) 
+        acost+=sumcost
+
+plt.hist(hcost, density=True, bins=22)
+plt.hist(acost, density=True, bins=22, alpha=0.5)
+stats.ttest_ind(acost, hcost)
+
+
+
+
+# control onset ----------------------------
+ind=np.random.randint(low=0, high=len(tasks))
+thetask=tasks[ind]
+
+ax=plt.subplot()
+invtag='h'
+ax1,ax2=None, None
+hgroupa=[]
+for isub in range(numhsub):
+    thesub="{}sub{}".format(invtag,str(isub))
+    k='res'+thesub
+    if k in asd_data_set:
+        theta=asd_data_set[k][0]
+        costs=theta[-4:-2]
+        k='data'+thesub
+        _,actions,tasks=asd_data_set[k]
+        indls=similar_trials2this(tasks, thetask, ntrial=2)
+        subactions=[actions[i] for i in indls]
+        subtasks=tasks[indls]
+        # meana=np.mean(np.array([np.diff(a[:7,0]) for a in subactions]), axis=0)
+        # meana=np.mean(np.array([np.diff(a[:7,1]) for a in subactions]), axis=0)
+        meana=np.mean(np.array([np.linalg.norm(np.diff(a[:7]),axis=1) for a in subactions]), axis=0)
+        ax.plot(meana,'b',linewidth=0.5)
+        hgroupa.append(meana)
+invtag='a'
+ax1,ax2=None, None
+agroupa=[]
+for isub in range(numhsub):
+    thesub="{}sub{}".format(invtag,str(isub))
+    k='res'+thesub
+    if k in asd_data_set:
+        theta=asd_data_set[k][0]
+        costs=theta[-4:-2]
+        k='data'+thesub
+        _,actions,tasks=asd_data_set[k]
+        indls=similar_trials2this(tasks, thetask, ntrial=2)
+        subactions=[actions[i] for i in indls]
+        subtasks=tasks[indls]
+        # meana=np.mean(np.array([np.diff(a[:7,0]) for a in subactions]), axis=0)
+        # meana=np.mean(np.array([np.diff(a[:7,1]) for a in subactions]), axis=0)
+        meana=np.mean(np.array([np.linalg.norm(np.diff(a[:7]),axis=1) for a in subactions]), axis=0)
+        ax.plot(meana,'r',linewidth=0.5)
+        agroupa.append(meana)
+quickspine(ax)
+# quickleg(ax)
+ax.set_xlabel('time, dt')
+ax.set_ylabel('control acceration')
+
+
+with initiate_plot(2,2,300) as fig:
+    ax=fig.add_subplot(111)
+    ax.errorbar(np.arange(len(hgroupa[0])),np.mean(np.array(hgroupa), axis=0),yerr=np.std(np.array(hgroupa), axis=0), color='b', label='NT mean')
+    ax.errorbar(np.arange(len(agroupa[0]))+0.2,np.mean(np.array(agroupa), axis=0),yerr=np.std(np.array(agroupa), axis=0), color='r', label='ASD mean')
+    quickspine(ax)
+    ax.set_xlabel('time, dt')
+    ax.set_ylabel('control acceration')
+    invtag='h'
+    ax1,ax2=None, None
+    hgroupa=[]
+    for isub in range(numhsub):
+        thesub="{}sub{}".format(invtag,str(isub))
+        k='res'+thesub
+        if k in asd_data_set:
+            theta=asd_data_set[k][0]
+            costs=theta[-4:-2]
+            k='data'+thesub
+            _,actions,tasks=asd_data_set[k]
+            indls=similar_trials2this(tasks, thetask, ntrial=2)
+            subactions=[actions[i] for i in indls]
+            subtasks=tasks[indls]
+            # meana=np.mean(np.array([np.diff(a[:7,0]) for a in subactions]), axis=0)
+            # meana=np.mean(np.array([np.diff(a[:7,1]) for a in subactions]), axis=0)
+            meana=np.mean(np.array([np.linalg.norm(np.diff(a[:7]),axis=1) for a in subactions]), axis=0)
+            ax.plot(meana,'tab:blue',linewidth=0.5, label='NT subject')
+            hgroupa.append(meana)
+    invtag='a'
+    ax1,ax2=None, None
+    agroupa=[]
+    for isub in range(numhsub):
+        thesub="{}sub{}".format(invtag,str(isub))
+        k='res'+thesub
+        if k in asd_data_set:
+            theta=asd_data_set[k][0]
+            costs=theta[-4:-2]
+            k='data'+thesub
+            _,actions,tasks=asd_data_set[k]
+            indls=similar_trials2this(tasks, thetask, ntrial=2)
+            subactions=[actions[i] for i in indls]
+            subtasks=tasks[indls]
+            # meana=np.mean(np.array([np.diff(a[:7,0]) for a in subactions]), axis=0)
+            # meana=np.mean(np.array([np.diff(a[:7,1]) for a in subactions]), axis=0)
+            meana=np.mean(np.array([np.linalg.norm(np.diff(a[:7]),axis=1) for a in subactions]), axis=0)
+            ax.plot(meana,'pink',linewidth=0.5, label='ASD subject')
+            agroupa.append(meana)
+    quickleg(ax)
+    # quicksave('asd accerate control faster v2')
+
+
+
     
 def relu(arr):
     arr[arr<0]=0
