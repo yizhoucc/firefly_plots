@@ -3721,6 +3721,10 @@ def quickallspine(ax):
     ax.spines['right'].set_visible(False)
     ax.spines['bottom'].set_visible(False)
     ax.spines['left'].set_visible(False)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_xticklabels([])
+    ax.set_yticklabels([])
 
 
 @contextmanager
@@ -4395,14 +4399,14 @@ def plotctrlasd(actionslike,**kwargs):
         prefix=kwargs['prefix'] if 'prefix' in kwargs else ''
         # ax.set_aspect('equal')
 
-        ax2.set_xlabel('time, dt')
+        ax2.set_xlabel('time [s]')
         ax1.set_ylabel('control v')
         ax2.set_ylabel('control w')
         # plot data
         num_trials=len(actionslike)
         for trial_i in range(num_trials):
-            ax1.plot(actionslike[trial_i][:,0],color=color[0], label=prefix+labels[0])
-            ax2.plot(actionslike[trial_i][:,1],color=color[1],label=prefix+labels[1])
+            ax1.plot(np.arange(0,len(actionslike[trial_i][:,0])/10,0.1),actionslike[trial_i][:,0],color=color[0], label=prefix+labels[0])
+            ax2.plot(np.arange(0,len(actionslike[trial_i][:,0])/10,0.1),actionslike[trial_i][:,1],color=color[1],label=prefix+labels[1])
         # legend and label
         quickleg(ax1);quickleg(ax2)
         quickspine(ax1);quickspine(ax2)

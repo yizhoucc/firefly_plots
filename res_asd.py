@@ -47,25 +47,6 @@ env.terminal_vel=0.05
 agent_=TD3.load('trained_agent/paper.zip')
 agent=agent_.actor.mu.cpu()
 
-
-
-# # ASD theta bar (not in use) --------------------------------------------
-# logls=['/data/human/fixragroup','/data/human/clusterpaperhgroup']
-# monkeynames=['ASD', 'Ctrl' ]
-# mus,covs,errs=[],[],[]
-# for inv in logls:
-#     finaltheta,finalcov, err=process_inv(inv,ind=60)
-#     mus.append(finaltheta)
-#     covs.append(finalcov)
-#     errs.append(err)
-
-# ax=multimonkeytheta(monkeynames, mus, covs, errs, )
-# ax.set_yticks([0,1,2])
-# ax.plot(np.linspace(-1,9),[2]*50)
-# ax.get_figure()
-
-
-
 # behavioral small gain prior, and we confirmed it ------------------------
 # load human without feedback data
 datapath=Path("/data/human/wohgroup")
@@ -188,23 +169,25 @@ for isub in range(numasub):
         invres['a'].append(process_inv(savename,ind=31, usingbest=True))
 
 
+
 # plot overhead for each subject
-for isub in range(len(hdata)):
-    s=0 if isub==0 else hcumsum[isub-1]
-    e=hcumsum[isub]
-    substates=hstates[s:e]
-    subtasks=htasks[s:e]
-    ax=quickoverhead_state(substates,subtasks)
-    print('infered theta: [\n', invres['h'][isub][0])
+plot_overhead_for_each_subject=False
+if plot_overhead_for_each_subject:
+    for isub in range(len(hdata)):
+        s=0 if isub==0 else hcumsum[isub-1]
+        e=hcumsum[isub]
+        substates=hstates[s:e]
+        subtasks=htasks[s:e]
+        ax=quickoverhead_state(substates,subtasks)
+        print('infered theta: [\n', invres['h'][isub][0])
 
-
-for isub in range(len(adata)):
-    s=0 if isub==0 else acumsum[isub-1]
-    e=acumsum[isub]
-    substates=astates[s:e]
-    subtasks=atasks[s:e]
-    ax=quickoverhead_state(substates,subtasks)
-    print('infered theta: [\n', invres['a'][isub][0])
+    for isub in range(len(adata)):
+        s=0 if isub==0 else acumsum[isub-1]
+        e=acumsum[isub]
+        substates=astates[s:e]
+        subtasks=atasks[s:e]
+        ax=quickoverhead_state(substates,subtasks)
+        print('infered theta: [\n', invres['a'][isub][0])
 
 
 # example overhead plot ----------------------------------------
@@ -286,74 +269,77 @@ with initiate_plot(3,3, 300) as fig:
 
 
 # overhead of one particular trial -------------------------------------
-isub=0
-s=0 if isub==0 else acumsum[isub-1]
-e=acumsum[isub]
-substates=astates[s:e]
-subtasks=atasks[s:e]
-# selections
-selctinds=similar_trials2this(subtasks, [1.8,1.3],ntrial=2)
-a=subtasks[selctinds]
-b=[substates[i] for i in selctinds]
-# plt.scatter(a[:,0]*200,a[:,1]*200)
-# plt.axis('equal')
-fig, ax = plt.subplots()
-ax=quickoverhead_state(b,a,ax=ax,goalcircle=True)
-# ax.add_patch(plt.Circle((a[0,0],a[0,1]), 0.13, color='y', alpha=0.5))
-ax.set_title(invres['a'][isub][0][1].item())
-ax.set_xticklabels(np.array(ax.get_xticks()).astype('int')*200)
-ax.set_yticklabels(np.array(ax.get_xticks()).astype('int')*200)
-isub+=1
-# quicksave('asd subject {} example path'.format(isub),fig=fig)
+plot_example_overhead_each_subject=False
+if plot_example_overhead_each_subject:
+    isub=0
+    s=0 if isub==0 else acumsum[isub-1]
+    e=acumsum[isub]
+    substates=astates[s:e]
+    subtasks=atasks[s:e]
+    # selections
+    selctinds=similar_trials2this(subtasks, [1.8,1.3],ntrial=2)
+    a=subtasks[selctinds]
+    b=[substates[i] for i in selctinds]
+    # plt.scatter(a[:,0]*200,a[:,1]*200)
+    # plt.axis('equal')
+    fig, ax = plt.subplots()
+    ax=quickoverhead_state(b,a,ax=ax,goalcircle=True)
+    # ax.add_patch(plt.Circle((a[0,0],a[0,1]), 0.13, color='y', alpha=0.5))
+    ax.set_title(invres['a'][isub][0][1].item())
+    ax.set_xticklabels(np.array(ax.get_xticks()).astype('int')*200)
+    ax.set_yticklabels(np.array(ax.get_xticks()).astype('int')*200)
+    isub+=1
+    # quicksave('asd subject {} example path'.format(isub),fig=fig)
 
-isub=0
-s=0 if isub==0 else hcumsum[isub-1]
-e=hcumsum[isub]
-substates=hstates[s:e]
-subtasks=htasks[s:e]
-# selections
-selctinds=similar_trials2this(subtasks, [1.8,1.3],ntrial=2)
-a=subtasks[selctinds]
-b=[substates[i] for i in selctinds]
-# plt.scatter(a[:,0]*200,a[:,1]*200)
-# plt.axis('equal')
-fig, ax = plt.subplots()
-ax=quickoverhead_state(b,a,ax=ax,goalcircle=True)
-# ax.add_patch(plt.Circle((a[0,0],a[0,1]), 0.13, color='y', alpha=0.5))
-ax.set_title(invres['h'][isub][0][1].item())
-ax.set_xticklabels(np.array(ax.get_xticks()).astype('int')*200)
-ax.set_yticklabels(np.array(ax.get_xticks()).astype('int')*200)
-isub+=1
-# quicksave('control subject {} example path'.format(isub),fig=fig)
+    isub=0
+    s=0 if isub==0 else hcumsum[isub-1]
+    e=hcumsum[isub]
+    substates=hstates[s:e]
+    subtasks=htasks[s:e]
+    # selections
+    selctinds=similar_trials2this(subtasks, [1.8,1.3],ntrial=2)
+    a=subtasks[selctinds]
+    b=[substates[i] for i in selctinds]
+    # plt.scatter(a[:,0]*200,a[:,1]*200)
+    # plt.axis('equal')
+    fig, ax = plt.subplots()
+    ax=quickoverhead_state(b,a,ax=ax,goalcircle=True)
+    # ax.add_patch(plt.Circle((a[0,0],a[0,1]), 0.13, color='y', alpha=0.5))
+    ax.set_title(invres['h'][isub][0][1].item())
+    ax.set_xticklabels(np.array(ax.get_xticks()).astype('int')*200)
+    ax.set_yticklabels(np.array(ax.get_xticks()).astype('int')*200)
+    isub+=1
+    # quicksave('control subject {} example path'.format(isub),fig=fig)
 
 
 
 
 # feedback vs no feedback overhead -------------------------------
-fig, ax = plt.subplots()
-selctinds=similar_trials2this(htasks, [1.8,1.3],ntrial=2)
-a=htasks[selctinds] # tasks
-b=[hstates[i] for i in selctinds] # states
-ax=quickoverhead_state(b,a,ax=ax,goalcircle=True)
-ax.get_figure()
+plot_feedback_example_overhead_each_subject=False
+if plot_feedback_example_overhead_each_subject:
+    fig, ax = plt.subplots()
+    selctinds=similar_trials2this(htasks, [1.8,1.3],ntrial=2)
+    a=htasks[selctinds] # tasks
+    b=[hstates[i] for i in selctinds] # states
+    ax=quickoverhead_state(b,a,ax=ax,goalcircle=True)
+    ax.get_figure()
 
-fig, ax = plt.subplots()
-selctinds=similar_trials2this(wohtasks, [1.8,1.3],ntrial=2)
-a=wohtasks[selctinds] # tasks
-b=[wohstates[i] for i in selctinds] # states
-ax=quickoverhead_state(b,a,ax=ax,goalcircle=True)
-ax.get_figure()
+    fig, ax = plt.subplots()
+    selctinds=similar_trials2this(wohtasks, [1.8,1.3],ntrial=2)
+    a=wohtasks[selctinds] # tasks
+    b=[wohstates[i] for i in selctinds] # states
+    ax=quickoverhead_state(b,a,ax=ax,goalcircle=True)
+    ax.get_figure()
 
+    ax.set_title(invres['a'][isub][0][1].item())
+    ax.set_xticklabels(np.array(ax.get_xticks()).astype('int')*200)
+    ax.set_yticklabels(np.array(ax.get_xticks()).astype('int')*200)
 
-ax.set_title(invres['a'][isub][0][1].item())
-ax.set_xticklabels(np.array(ax.get_xticks()).astype('int')*200)
-ax.set_yticklabels(np.array(ax.get_xticks()).astype('int')*200)
+    quickoverhead_state(hstates[100:200],htasks[100:200])
+    quickoverhead_state(wohstates[100:200],wohtasks[100:200])
 
-quickoverhead_state(hstates[100:200],htasks[100:200])
-quickoverhead_state(wohstates[100:200],wohtasks[100:200])
-
-quickoverhead_state(astates[100:200],atasks[100:200])
-quickoverhead_state(woastates[100:200],woatasks[100:200])
+    quickoverhead_state(astates[100:200],atasks[100:200])
+    quickoverhead_state(woastates[100:200],woatasks[100:200])
 
 
 # inv res scatteers bar ----------------------------------
@@ -510,36 +496,37 @@ with initiate_plot(22,2,100) as fig:
     quicksave('theta together v2')
 
 
-
-# connected line with error bar style
-x=np.array(list(range(10)))
-hy=np.array([np.array(log[0].view(-1)) for log in invres['h']])
-ay=np.array([np.array(log[0].view(-1)) for log in invres['a']])
-plt.errorbar(x, np.mean(hy,axis=0), np.std(hy,axis=0))
-plt.errorbar(x+0.3, np.mean(ay,axis=0), np.std(ay,axis=0))
-
-
-# biased degree v
-''' bias*(p/p+o) '''
-biash=(pi/2-hy[:,0])/(pi/2) * (hy[:,2]/(hy[:,2]+hy[:,4]))
-biasa=(pi/2-ay[:,0])/(pi/2) * (ay[:,2]/(ay[:,2]+ay[:,4]))
-plt.figure(figsize=(1,3))
-plt.scatter([0]*len(biash), biash,alpha=0.1)
-plt.scatter([1]*len(biasa), biasa,alpha=0.1)
+ttestplots=False
+if ttestplots:
+    # connected line with error bar style
+    x=np.array(list(range(10)))
+    hy=np.array([np.array(log[0].view(-1)) for log in invres['h']])
+    ay=np.array([np.array(log[0].view(-1)) for log in invres['a']])
+    plt.errorbar(x, np.mean(hy,axis=0), np.std(hy,axis=0))
+    plt.errorbar(x+0.3, np.mean(ay,axis=0), np.std(ay,axis=0))
 
 
-# biased degree w
-biash=(pi/2-hy[:,1])/(pi/2) * (hy[:,3]/(hy[:,3]+hy[:,5]))
-biasa=(pi/2-ay[:,1])/(pi/2) * (ay[:,3]/(ay[:,3]+ay[:,5]))
-plt.figure(figsize=(1,3))
-plt.scatter([0]*len(biash), biash,alpha=0.1)
-plt.scatter([1]*len(biasa), biasa,alpha=0.1)
+    # biased degree v
+    ''' bias*(p/p+o) '''
+    biash=(pi/2-hy[:,0])/(pi/2) * (hy[:,2]/(hy[:,2]+hy[:,4]))
+    biasa=(pi/2-ay[:,0])/(pi/2) * (ay[:,2]/(ay[:,2]+ay[:,4]))
+    plt.figure(figsize=(1,3))
+    plt.scatter([0]*len(biash), biash,alpha=0.1)
+    plt.scatter([1]*len(biasa), biasa,alpha=0.1)
 
 
-# cost w
-plt.figure(figsize=(1,3))
-plt.scatter([0]*len(biash), hy[:,7],alpha=0.3)
-plt.scatter([1]*len(biasa), ay[:,7],alpha=0.3)
+    # biased degree w
+    biash=(pi/2-hy[:,1])/(pi/2) * (hy[:,3]/(hy[:,3]+hy[:,5]))
+    biasa=(pi/2-ay[:,1])/(pi/2) * (ay[:,3]/(ay[:,3]+ay[:,5]))
+    plt.figure(figsize=(1,3))
+    plt.scatter([0]*len(biash), biash,alpha=0.1)
+    plt.scatter([1]*len(biasa), biasa,alpha=0.1)
+
+
+    # cost w
+    plt.figure(figsize=(1,3))
+    plt.scatter([0]*len(biash), hy[:,7],alpha=0.3)
+    plt.scatter([1]*len(biasa), ay[:,7],alpha=0.3)
 
 
 # t test each papram (asd vs nt)

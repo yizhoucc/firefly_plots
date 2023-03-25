@@ -146,12 +146,13 @@ with initiate_plot(3,2, 300) as f:
     ax=f.add_subplot(111)
     ax.plot(thresholds,np.cumsum(np.array(acounts)/sum([len(a) for a in aactions])),color='r', label='ASD')
     ax.plot(thresholds,np.cumsum(np.array(hcounts)/sum([len(a) for a in hactions])), color='b', label='NT')
+    ax.set_xlim(0.1,None)
     ax.set_title('ctrl change > 0.1')
     ax.set_xlabel('ctrl changes amplitude')
     ax.set_ylabel('cumulative probability')
     quickspine(ax)
     quickleg(ax)
-    # quicksave('cumulative prob for control change > 0.1')
+    # quicksave('cumulative prob for control change > 0.1 v2')
 
 
 # larger changes, angular only ----------------
@@ -487,6 +488,32 @@ with initiate_plot(3,3,300) as f:
     ax.set_xlabel('world x [2m]')
     ax.set_ylabel('world y [2m]')
     # quicksave('asd-nt cost overhead')
+
+fontsize=11
+with initiate_plot(3,3, 300) as fig:
+    ax = fig.add_subplot(111)
+    ax.set_aspect('equal')
+    ax.axes.xaxis.set_ticks([]); ax.axes.yaxis.set_ticks([])
+    # ax.set_xlim([-235, 235]); ax.set_ylim([-2, 430])
+    xrange=np.cos(pi/180*(90-42.5))*600
+    x_temp = np.linspace(-xrange, xrange)
+    ax.plot(x_temp, np.sqrt(600**2 - x_temp**2), c='k', ls=':')
+    ax.text(-10, 625, s=r'$85\degree$', fontsize=fontsize)
+    ax.plot(np.linspace(-300, -200), np.linspace(-100, -100), c='k') # 100 is cm
+    ax.plot(np.linspace(-300, -300), np.linspace(-100, 0), c='k')
+    ax.text(-230, -200, s=r'$1 m$', fontsize=fontsize)
+    ax.scatter(0,0, marker='*', color='black', s=55) 
+
+    im=ax.scatter(thetasks[:,1]*200, thetasks[:,0]*200, c=normedcostdiffs, cmap='bwr', vmin=-1, vmax=1)
+    f.colorbar(im,ax=ax, label='ASD - NT cost', ticks=[-1,0,1])
+
+    ax.axis('equal')
+    quickleg(ax)
+    quickallspine(ax)
+    quicksave('asd-nt cost overhead v2')
+
+#
+
 
 # version4, cumsum same side, solid mean and fade individual
 ind=np.random.randint(low=0, high=len(tasks))
@@ -1015,23 +1042,47 @@ states,actions, beliefs, covs=run_trials(agent=agent, env=env, phi=phi, theta=th
 mintime=min([len(s) for s in states])+5
 states=[s[:mintime] for s in states]
 actions=[s[:mintime] for s in actions]
-quickoverhead_state(states, np.array([thetask]*2), color='b')
-ax=quickoverhead_state(beliefs, np.array([thetask]*2), color='r')
+with initiate_plot(3,3, 300) as fig:
+    ax = fig.add_subplot(111)
+    ax.set_aspect('equal')
+    ax.axes.xaxis.set_ticks([]); ax.axes.yaxis.set_ticks([])
+    # ax.set_xlim([-235, 235]); ax.set_ylim([-2, 430])
+    xrange=np.cos(pi/180*(90-42.5))*600
+    x_temp = np.linspace(-xrange, xrange)
+    ax.plot(x_temp, np.sqrt(600**2 - x_temp**2), c='k', ls=':')
+    ax.text(-10, 625, s=r'$85\degree$', fontsize=fontsize)
+    ax.plot(np.linspace(-300, -200), np.linspace(-100, -100), c='k') # 100 is cm
+    ax.plot(np.linspace(-300, -300), np.linspace(-100, 0), c='k')
+    ax.text(-230, -200, s=r'$1 m$', fontsize=fontsize)
+    ax.scatter(0,0, marker='*', color='black', s=55) 
+
+    for s in beliefs:
+        ax.plot(s[:,1]*200, s[:,0]*200, color='black')
+    plot_circle(np.eye(2)*65,[thetask[1]*200,thetask[0]*200],ax=ax,edgecolor='k')
+    ax.axis('equal')
+    # quickleg(ax)
+    quickallspine(ax)
+    # quicksave('model low cost overhead')
 # quicksave('low cost adjustment overhead', fig=ax.get_figure())
 ax,_=plotctrlasd(actions)
-# quicksave('low cost adjustment control',fig=ax.get_figure())
+ax.set_xlim(0,4)
+quicksave('low cost adjustment control',fig=ax.get_figure())
 costs=[np.sum( (np.power(relu(np.diff(np.array(a), axis=0)),2)), axis=1) for a in actions]
 minlen=min([len(a) for a in costs])
 costsmu=[np.mean([a[t] for a in costs]) for t in range(minlen)]
 costserr=[np.std([a[t] for a in costs]) for t in range(minlen)]
-with initiate_plot(2,2,300) as fig:
+with initiate_plot(3,2,300) as fig:
     ax=fig.add_subplot(111)
-    ax.errorbar(np.arange(len(costsmu)), costsmu, yerr=costserr)
+    ax.errorbar(np.arange(0,len(costsmu)/10,0.1), costsmu, yerr=costserr)
     quickspine(ax)
-    ax.set_xlabel('time, dt')
     ax.set_ylabel('costs')
-    # quicksave('low cost vs time')
+    ax.set_xlabel('time [s]')
+    ax.set_xlim(0,None)
+    ax.set_ylim(0,0.3)
+    ax.set_xlim(0,4)
+    quicksave('low cost adjustment cost')
 
+    
 
 # high cost
 theta=torch.tensor([[1],   
@@ -1051,29 +1102,53 @@ states,actions, beliefs, covs=run_trials(agent=agent, env=env, phi=phi, theta=th
 mintime=min([len(s) for s in states])+5
 states=[s[:mintime] for s in states]
 actions=[s[:mintime] for s in actions]
-quickoverhead_state(states, np.array([thetask]*2), color='b')
-ax=quickoverhead_state(beliefs, np.array([thetask]*2), color='r')
+# quickoverhead_state(states, np.array([thetask]*2), color='b')
+# ax=quickoverhead_state(beliefs, np.array([thetask]*2), color='r')
+with initiate_plot(3,3, 300) as fig:
+    ax = fig.add_subplot(111)
+    ax.set_aspect('equal')
+    ax.axes.xaxis.set_ticks([]); ax.axes.yaxis.set_ticks([])
+    # ax.set_xlim([-235, 235]); ax.set_ylim([-2, 430])
+    xrange=np.cos(pi/180*(90-42.5))*600
+    x_temp = np.linspace(-xrange, xrange)
+    ax.plot(x_temp, np.sqrt(600**2 - x_temp**2), c='k', ls=':')
+    ax.text(-10, 625, s=r'$85\degree$', fontsize=fontsize)
+    ax.plot(np.linspace(-300, -200), np.linspace(-100, -100), c='k') # 100 is cm
+    ax.plot(np.linspace(-300, -300), np.linspace(-100, 0), c='k')
+    ax.text(-230, -200, s=r'$1 m$', fontsize=fontsize)
+    ax.scatter(0,0, marker='*', color='black', s=55) 
+
+    for s in beliefs:
+        ax.plot(s[:,1]*200, s[:,0]*200, color='black')
+    plot_circle(np.eye(2)*65,[thetask[1]*200,thetask[0]*200],ax=ax,edgecolor='k')
+    ax.axis('equal')
+    # quickleg(ax)
+    quickallspine(ax)
+    # quicksave('model high cost overhead')
 # quicksave('high cost adjustment overhead', fig=ax.get_figure())
 ax,_=plotctrlasd(actions)
-# quicksave('high cost adjustment control',fig=ax.get_figure())
+ax.set_xlim(0,4)
+quicksave('high cost adjustment control',fig=ax.get_figure())
 # ax,_=plotctrlasd([given_obs[:29]])
 # quicksave('biased observation',fig=ax.get_figure())
 costs=[np.sum( (np.power(relu(np.diff(np.array(a), axis=0)),2)), axis=1) for a in actions]
 minlen=min([len(a) for a in costs])
 costsmu=[np.mean([a[t] for a in costs]) for t in range(minlen)]
 costserr=[np.std([a[t] for a in costs]) for t in range(minlen)]
-with initiate_plot(2,2,300) as fig:
+with initiate_plot(3,2,300) as fig:
     ax=fig.add_subplot(111)
-    ax.errorbar(np.arange(len(costsmu)), costsmu, yerr=costserr)
+    ax.errorbar(np.arange(0,len(costsmu)/10,0.1), costsmu, yerr=costserr)
     quickspine(ax)
-    ax.set_xlabel('time, dt')
     ax.set_ylabel('costs')
-    # quicksave('high cost vs time')
-
+    ax.set_xlabel('time [s]')
+    ax.set_xlim(0,None)
+    ax.set_ylim(0,0.3)
+    ax.set_xlim(0,4)
+    quicksave('high cost adjustment cost')
 
 
 # no adjustment
-ntrial=5
+ntrial=3
 theta=torch.tensor([[1],   
                         [pi/2],   
                         [0.001],   
@@ -1089,20 +1164,47 @@ states,actions, beliefs, covs=run_trials(agent=agent, env=env, phi=phi, theta=th
 mintime=min([len(s) for s in states])+5
 states=[s[:mintime] for s in states]
 actions=[s[:mintime] for s in actions]
-ax=quickoverhead_state(states, np.array([thetask]*2), color='r')
-# quicksave('no adjust adjustment overhead', fig=ax.get_figure())
+# ax=quickoverhead_state(states, np.array([thetask]*2), color='r')
+# quicksave('no adjust adjustment overhead', fig=ax.get_figure()
+ax,_=plotctrlasd(actions)
+ax.set_xlim(0,4)
+quicksave('no adjustment control',fig=ax.get_figure())
+with initiate_plot(3,3, 300) as fig:
+    ax = fig.add_subplot(111)
+    ax.set_aspect('equal')
+    ax.axes.xaxis.set_ticks([]); ax.axes.yaxis.set_ticks([])
+    # ax.set_xlim([-235, 235]); ax.set_ylim([-2, 430])
+    xrange=np.cos(pi/180*(90-42.5))*600
+    x_temp = np.linspace(-xrange, xrange)
+    ax.plot(x_temp, np.sqrt(600**2 - x_temp**2), c='k', ls=':')
+    ax.text(-10, 625, s=r'$85\degree$', fontsize=fontsize)
+    ax.plot(np.linspace(-300, -200), np.linspace(-100, -100), c='k') # 100 is cm
+    ax.plot(np.linspace(-300, -300), np.linspace(-100, 0), c='k')
+    ax.text(-230, -200, s=r'$1 m$', fontsize=fontsize)
+    ax.scatter(0,0, marker='*', color='black', s=55) 
 
+    for s in beliefs:
+        ax.plot(s[:,1]*200, s[:,0]*200, color='black')
+    plot_circle(np.eye(2)*65,[thetask[1]*200,thetask[0]*200],ax=ax,edgecolor='k')
+    ax.axis('equal')
+    # quickleg(ax)
+    quickallspine(ax)
+    # quicksave('model no adjustment overhead')
 costs=[np.sum( (np.power(relu(np.diff(np.array(a), axis=0)),2)), axis=1) for a in actions]
 minlen=min([len(a) for a in costs])
 costsmu=[np.mean([a[t] for a in costs]) for t in range(minlen)]
 costserr=[np.std([a[t] for a in costs]) for t in range(minlen)]
-with initiate_plot(2,2,300) as fig:
+with initiate_plot(3,2,300) as fig:
     ax=fig.add_subplot(111)
-    ax.errorbar(np.arange(len(costsmu)), costsmu, yerr=costserr)
+    ax.errorbar(np.arange(0,len(costsmu)/10,0.1), costsmu, yerr=costserr)
     quickspine(ax)
-    ax.set_xlabel('time, dt')
     ax.set_ylabel('costs')
-    # quicksave('no adjust cost vs time')
+    ax.set_xlabel('time [s]')
+    ax.set_xlim(0,None)
+    ax.set_ylim(0,0.3)
+    ax.set_xlim(0,4)
+    quicksave('no adjustment cost')
+
 
 # quicksave('no adjust adjustment overhead', fig=ax.get_figure())
 pert=torch.vstack([torch.ones(size=(9,2))*0.9,0.1*torch.ones(size=(95,2))])

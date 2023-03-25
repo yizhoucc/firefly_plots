@@ -8,7 +8,7 @@ from plot_ult import *
 import copy
 
 
-def hinge_loss(outputs, labels, model,reg=0.8):
+def hinge_loss(outputs, labels, model,reg=0.5, alpha=0.01):
     """
     折页损失计算
     :param outputs: 大小为(N, num_classes)
@@ -24,13 +24,10 @@ def hinge_loss(outputs, labels, model,reg=0.8):
     loss = torch.sum(torch.max(margins, 1)[0]) / len(labels)
 
     # # 正则化强度
-    # reg = 1e-3
-    # loss += reg * torch.sum(weight ** 2)
-
+    loss += alpha * torch.sum(model.weight ** 2)
     # weights smooth
-    reg=0.1
     loss+=reg*torch.sum(torch.abs(torch.diff(torch.diff(model.weight, axis=0))))
-    loss-=torch.abs(model.weight[0,model.weight.shape[1]//2]-model.weight[0,model.weight.shape[1]//2-1]) # adjust for disjoint where v and w concat
+    # loss-=torch.abs(model.weight[0,model.weight.shape[1]//2]-model.weight[0,model.weight.shape[1]//2-1]) # adjust for disjoint where v and w concat
 
     return loss
 
@@ -149,19 +146,23 @@ def load_data(X, Y):
     return data_loaders, data_sizes
 
 
-def pad_to_dense(M, maxlen=0):
+def pad_to_dense(M, maxlen=0, padfirst=False):
     """Appends the minimal required amount of zeroes at the end of each 
      array in the jagged array `M`, such that `M` looses its jagedness."""
     if maxlen==0:
         maxlen = max(len(r) for r in M)
-
     Z = np.zeros((len(M), maxlen))
-    for enu, row in enumerate(M):
-        Z[enu, :min(maxlen, len(row))] += row[:min(maxlen, len(row))]
+    if padfirst:
+        for enu, row in enumerate(M):
+            Z[enu, maxlen-min(maxlen, len(row)):] += row[:min(maxlen, len(row))]
+
+    else:
+        for enu, row in enumerate(M):
+            Z[enu, :min(maxlen, len(row))] += row[:min(maxlen, len(row))]
     return Z
 
-
-if __name__ == '__main__':
+check=False
+if check and __name__ == '__main__':
 
     # load data ----------------------------
     asd_data_set={}
@@ -315,6 +316,172 @@ if __name__ == '__main__':
         # quicksave('v and w coef of trajectory svm smooth')
 
 
+# 0223, pad first, pad last, all in one
+if __name__ == '__main__':
+
+    # load data ----------------------------
+    asd_data_set={}
+    numhsub,numasub=25,14
+    fulltrainfolder='persub1cont'
+    parttrainfolder='persub3of5dp'
+    for invtag in ['h','a']:
+        for isub in range(numhsub):
+            thesub="{}sub{}".format(invtag,str(isub))
+            evalname=Path("/data/human/{}/evaltrain_inv{}sub{}".format(parttrainfolder,invtag,str(isub)))
+            fullinverseres=Path("/data/human/{}".format(fulltrainfolder))/"inv{}sub{}".format(invtag,str(isub))
+            partinverseres=Path("/data/human/{}".format(parttrainfolder))/"inv{}sub{}".format(invtag,str(isub))
+            # load inv res
+            if fullinverseres.is_file():
+                asd_data_set['res'+thesub]=process_inv(fullinverseres, usingbest=True, removegr=False)
+            # load data
+            if Path('/data/human/{}'.format(thesub)).is_file():
+                with open('/data/human/{}'.format(thesub), 'rb') as f:
+                    states, actions, tasks = pickle.load(f)
+                print(len(states))
+                asd_data_set['data'+thesub]=states, actions, tasks
+            
+    alltag=[]
+    allsamples_=[]
+    maxlen=0
+    cumsum=[0]
+    running=0
+    for invtag in ['h','a']:
+        astartind=running
+        for isub in range(numhsub):
+            thesub="{}sub{}".format(invtag,str(isub))
+            if 'data'+thesub in asd_data_set:
+                _,actions,tasks=asd_data_set['data'+thesub]
+                curmax=max([len(a) for a in actions])
+                maxlen=max(maxlen, curmax)
+                running+=len(actions)
+                cumsum.append(running)
+    for invtag in ['h','a']:
+        for isub in range(numhsub):
+            thesub="{}sub{}".format(invtag,str(isub))
+            if 'data'+thesub in asd_data_set:
+                _,actions,tasks=asd_data_set['data'+thesub]
+                paddedv=pad_to_dense([np.array(a[:,0]) for a in actions],maxlen=maxlen)
+                paddedw=pad_to_dense([np.array(a[:,1])*sign for sign, a in zip(np.array(tasks[:,1]>0, dtype=int)*-1, actions)],maxlen=maxlen)
+                firstpaddedv=pad_to_dense([np.array(a[:,0]) for a in actions], maxlen=maxlen, padfirst=True)
+                firstpaddedw=pad_to_dense([np.array(a[:,1])*sign for sign, a in zip(np.array(tasks[:,1]>0, dtype=int)*-1, actions)], maxlen=maxlen,padfirst=True)                # allsamples_.append(np.hstack([tasks,paddedv,paddedw])) # baseline
+                allsamples_.append(np.hstack([paddedv,firstpaddedv,paddedw,firstpaddedw])) # remove the task, similar res
+                # allsamples_.append(np.hstack([(paddedv.T/tasks[:,0]).T,(paddedw.T/np.abs(tasks[:,1])).T])) # devide the target distance and angle
+
+                # warpv=np.array([resample(np.array(a[:,0]), maxlen) for a in actions])
+                # warpw=np.array([resample(np.array(a[:,1])*sign, maxlen) for sign, a in zip(np.array(tasks[:,1]>0, dtype=int)*-1, actions)])
+                # allsamples_.append(np.hstack([warpv, warpw])) # resample instead of padding (time warpping)
+                # allsamples_.append(np.hstack([tasks, warpv, warpw])) # resample instead of padding (time warpping) and target
+                # allsamples_.append(np.hstack([(warpv.T/tasks[:,0]).T, (warpw.T/np.abs(tasks[:,1])).T])) # resample instead of padding (time warpping) and divde by target
+
+                if invtag=='a':
+                    alltag+=[1]*len(actions)
+                else:
+                    alltag+=[0]*len(actions)
+
+    allsamples=np.vstack(allsamples_)
+    alltag=np.array(alltag).astype('int') # asd is 1
+
+
+    # my svm, encourage smoother weights -----------------------
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    X, Y=torch.tensor(allsamples).float(),torch.tensor(alltag)
+    # X.shape
+    model = nn.Linear(X.shape[1], 2).to(device)
+    # criterion = nn.CrossEntropyLoss()
+    criterion = hinge_loss
+    optimizer = optim.SGD(model.parameters(), lr=1e-3, momentum=0.9)
+    lr_schduler = optim.lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
+    data_loaders, data_sizes = load_data(X, Y)
+    train_model(data_loaders, model, criterion, optimizer, lr_schduler, num_epochs=11, device=device)
+    # plt.plot(model.weight.clone().detach()[0])
+    # plt.plot(model.weight.clone().detach()[1])
+    # plt.show()
+    diffs=(model.weight.clone().detach()[1]-model.weight.clone().detach()[0])[2:]
+    # plt.plot(diffs[:len(diffs)//2][:50])
+    # plt.plot(diffs[len(diffs)//2:][:50])
+
+
+    # projected on most seperable axis svm ----------------------
+    w=(model.weight.clone().detach()[1]-model.weight.clone().detach()[0])
+    ticks=X[:,:]@(w)
+    fig = plt.figure()
+    ax  = fig.add_subplot(111)
+    ax.hist(ticks[Y==0],density=True,color='b',bins=99,label='health control',alpha=0.6)
+    ax.hist(ticks[Y==1],density=True,color='r',bins=99,label='ASD',alpha=0.6)
+    ax.set_xlabel('param value')
+    ax.set_ylabel('probability')
+    # ax.set_xlim(-1,1)
+    quickspine(ax)
+    # quicksave('asd behavior trajectory svm project smooth')
+
+
+
+    # per subject curve
+    print('there are some diff. asd seems to be a bi modal distribution. plot individuals to check')
+    from numpy import linspace
+    from scipy import stats 
+    fig = plt.figure(figsize=(6,3))
+    ax1  = fig.add_subplot(121)
+    ax2  = fig.add_subplot(122, sharey=ax1,sharex=ax1)
+    for i, (s,e) in enumerate(zip(cumsum[:-1], cumsum[1:])):
+        ticks=X[s:e,:]@(w)
+        if s>=astartind: # ASD
+            cm_subsection = linspace(0, 1, 25) 
+            colors = [ cm.gist_heat(x) for x in cm_subsection ]
+            # ax2.hist(ticks,density=True,bins=33,alpha=0.6)
+            density = stats.gaussian_kde(ticks)
+            n, x = np.histogram(ticks, bins=33,density=True)
+            ax2.plot(x, density(x),linewidth=1, color=colors[i-numhsub])
+        else: # NT
+            cm_subsection = linspace(0, 0.8, 25) 
+            colors = [ cm.winter(x) for x in cm_subsection ]
+            # ax1.hist(ticks,density=True,bins=33,alpha=0.6)
+            density = stats.gaussian_kde(ticks)
+            n, x = np.histogram(ticks, bins=33,density=True)
+            ax1.plot(x, density(x), linewidth=1, color=colors[i])
+
+        ax1.set_xlabel('param value')
+        ax1.set_ylabel('probability density')
+        quickspine(ax1)
+        ax2.set_xlabel('param value')
+        quickspine(ax2)
+    # quicksave('asd behavior trajectory svm smooth individual')
+    print('the other peak suggest asd behavior. still they are mixed')
+
+
+
+    # weights of the svm ----------------------------
+    maxlen=len(diffs)//4
+    with initiate_plot(8,2,300) as f:
+        ax=f.add_subplot(141)
+        ax.plot(np.linspace(0,maxlen/10,maxlen),diffs[:maxlen], color='k')
+        quickspine(ax)
+        ax.set_xlabel('zero pad end')
+        ax.set_ylabel('v control coef')
+        ax.set_xticks(ax.get_xlim())
+        ax.set_xticklabels(['start' ,'end'])
+
+        ax=f.add_subplot(142, sharex=ax)
+        ax.plot(np.linspace(0,maxlen/10,maxlen),diffs[maxlen:2*maxlen], color='k')
+        quickspine(ax)
+        ax.set_xlabel('zero pad front')
+        ax.set_ylabel('v control coef')
+
+        ax=f.add_subplot(143, sharex=ax)
+        ax.plot(np.linspace(0,maxlen/10,maxlen),diffs[2*maxlen:3*maxlen], color='k')
+        quickspine(ax)
+        ax.set_xlabel('zero pad end')
+        ax.set_ylabel('w control coef')
+        
+        ax=f.add_subplot(144, sharex=ax)
+        ax.plot(np.linspace(0,maxlen/10,maxlen),diffs[3*maxlen:4*maxlen], color='k')
+        quickspine(ax)
+        ax.set_xlabel('zero pad front')
+        ax.set_ylabel('w control coef')
+
+        plt.tight_layout()
+        # quicksave('v and w coef of trajectory svm smooth')
+
 
 
 
@@ -324,6 +491,68 @@ check=False
 if check:
     # baseline svm (no smoothing) -------------------------------
     from sklearn import svm
+    asd_data_set={}
+    numhsub,numasub=25,14
+    fulltrainfolder='persub1cont'
+    parttrainfolder='persub3of5dp'
+    for invtag in ['h','a']:
+        for isub in range(numhsub):
+            thesub="{}sub{}".format(invtag,str(isub))
+            evalname=Path("/data/human/{}/evaltrain_inv{}sub{}".format(parttrainfolder,invtag,str(isub)))
+            fullinverseres=Path("/data/human/{}".format(fulltrainfolder))/"inv{}sub{}".format(invtag,str(isub))
+            partinverseres=Path("/data/human/{}".format(parttrainfolder))/"inv{}sub{}".format(invtag,str(isub))
+            # load inv res
+            if fullinverseres.is_file():
+                asd_data_set['res'+thesub]=process_inv(fullinverseres, usingbest=True, removegr=False)
+            # load data
+            if Path('/data/human/{}'.format(thesub)).is_file():
+                with open('/data/human/{}'.format(thesub), 'rb') as f:
+                    states, actions, tasks = pickle.load(f)
+                print(len(states))
+                asd_data_set['data'+thesub]=states, actions, tasks
+            
+
+    lens=[]
+    cumsum=[0]
+    running=0
+    for invtag in ['h','a']:
+        astartind=running
+        for isub in range(numhsub):
+            thesub="{}sub{}".format(invtag,str(isub))
+            if 'data'+thesub in asd_data_set:
+                _,actions,tasks=asd_data_set['data'+thesub]
+                curmax=max([len(a) for a in actions])
+                lens.append(curmax)
+                running+=len(actions)
+                cumsum.append(running)
+
+    plt.hist(lens)
+    
+    minlen=60
+    maxlne=100
+    alltag=[]
+    allsamples_=[]
+    for invtag in ['h','a']:
+        for isub in range(numhsub):
+            thesub="{}sub{}".format(invtag,str(isub))
+            if 'data'+thesub in asd_data_set:
+                _,actions,tasks=asd_data_set['data'+thesub]
+                
+                for a, sign in zip(actions, np.array(tasks[:,1]>0, dtype=int)*-1):
+                    if minlen<len(a)<maxlen:
+                        paddedv=pad_to_dense([np.array(a[:,0])],maxlen=maxlen)
+                        paddedw=pad_to_dense([np.array(a[:,1])*sign],maxlen=maxlen)
+                        allsamples_.append(np.hstack([paddedv,paddedw])) 
+
+                        if invtag=='a':
+                            alltag+=[1]
+                        else:
+                            alltag+=[0]
+
+    allsamples=np.vstack(allsamples_)
+    alltag=np.array(alltag).astype('int') # asd is 1
+
+
     X, Y=allsamples,alltag
     X = X[np.logical_or(Y==0,Y==1)][:,:]
     Y = Y[np.logical_or(Y==0,Y==1)]

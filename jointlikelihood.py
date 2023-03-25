@@ -210,12 +210,12 @@ formatedZ = gaussian_filter(formatedZ, sigma)
 with initiate_plot(5,5,300) as f:
     ax=f.add_subplot(111)
     # im=ax.imshow(formatedZ[1:-1],origin='lower', extent=(X[0],X[-2],Y[2],Y[-2]),aspect=(X[-2]-X[0])/(Y[-2]-Y[0]),vmin=-79, vmax=-73, cmap='jet')    
-    im=ax.contourf(formatedZ[1:-1],origin='lower', extent=(X[0],X[-2],Y[2],Y[-2]),aspect=(X[-2]-X[0])/(Y[-2]-Y[0]),vmin=-79, vmax=-73, cmap='jet')    
+    im=ax.contourf(formatedZ[1:-1],origin='lower', extent=(X[0],X[-2],Y[2],Y[-2]),aspect=(X[-2]-X[0])/(Y[-2]-Y[0]),vmin=-79, vmax=-73, cmap='Greys')    
     ax.set_aspect((X[-2]-X[0])/(Y[-2]-Y[0]))
     divider = make_axes_locatable(ax)
     cax = divider.append_axes("right", size="3%", pad=0.005)
     plt.colorbar(im, cax=cax,label='joint log likelihood')
-    ax.scatter(0,0,label='midpoint', color='k',s=99) # midpoint, 0,0
+    ax.scatter(0,0,label='midpoint', color='r',s=99) # midpoint, 0,0
     ax.set_xlabel('delta noise')
     ax.set_ylabel('delta cost')
     ax.scatter(truedelta[5]/2,truedelta[8]/2,label='inferred delta', color='green',s=99) # inferred delta
