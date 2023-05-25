@@ -8,7 +8,7 @@ from scipy import stats
 import matplotlib
 from playsound import playsound
 import matplotlib.pyplot as plt
-from sklearn import svm
+
 import numpy as np
 import os
 import pandas as pd
@@ -143,3 +143,12 @@ with initiate_plot(4, 2, 300) as fig, warnings.catch_warnings():
     handles, labels = ax.get_legend_handles_labels()
     by_label = dict(zip(labels, handles))
     ax.legend(by_label.values(), by_label.keys(),loc=2, prop={'size': 6})
+
+
+
+(15**2)**2*(500*15)
+
+
+
+
+

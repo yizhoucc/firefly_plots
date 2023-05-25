@@ -530,10 +530,11 @@ if ttestplots:
 
 
 # t test each papram (asd vs nt)
+theta_sclar=[2,180/pi,2,180/pi,2,180/pi,1,1,2,2]
 for i in range(len(theta_names)):
     print(theta_names[i],'\n',stats.ttest_ind(hy[:,i],ay[:,i]))
-    print('summary, asd \n', npsummary(ay[:,i]))
-    print('summary, asd \n', npsummary(hy[:,i]))
+    print('summary, asd \n', npsummary(ay[:,i]*theta_sclar[i]))
+    print('summary, nt \n', npsummary(hy[:,i]*theta_sclar[i]))
 
 # t test each gain (asd or vs true task)
 print(theta_names[0],'\n',stats.ttest_1samp(hy[:,0], 1,alternative='less'))
@@ -820,6 +821,23 @@ with initiate_plot(1,1,300) as fig:
 
 
 # inferred theta svm --------------------------
+# load inv data
+numhsub,numasub=25,14
+foldername='persub1cont'
+logs={'a':'/data/human/fixragroup','h':'/data/human/clusterpaperhgroup'}
+
+invres={'a':[],'h':[]}
+for isub in range(numhsub):
+    dataname="hsub{}".format(str(isub))
+    savename=Path("/data/human/{}".format(foldername))/"invhsub{}".format(str(isub))
+    if savename.is_file():
+        invres['h'].append(process_inv(savename,ind=31, usingbest=True))
+for isub in range(numasub):
+    dataname="asub{}".format(str(isub))
+    savename=Path("/data/human/{}".format(foldername))/"invasub{}".format(str(isub))
+    if savename.is_file():
+        invres['a'].append(process_inv(savename,ind=31, usingbest=True))
+
 numsamples=100
 adjustratio=len(invres['h'])/len(invres['a'])
 alltag=[]
@@ -868,5 +886,108 @@ ax.set_xlabel('param value')
 ax.set_ylabel('probability')
 # quicksave('asd group project svm normal vector no init uncertainty')
 
+# test
+stats.ttest_ind(ticks[Y==0],ticks[Y==1])
+stats.ks_2samp(ticks[Y==0],ticks[Y==1], alternative='two-sided')
+stats.ks_2samp(ticks[Y==0],ticks[Y==1], alternative='less')
+stats.ks_2samp(ticks[Y==0],ticks[Y==1], alternative='greater')
+stats.anderson_ksamp([ticks[Y==0],ticks[Y==1]])
+stats.weightstats.ztest(ticks[Y==0],ticks[Y==1])
+scipy.special.kl_div(ticks[Y==0][:2019],ticks[Y==1])
+
+
+# var instead of cov
+invres={'a':[],'h':[]}
+for isub in range(numhsub):
+    dataname="hsub{}".format(str(isub))
+    savename=Path("/data/human/{}".format(foldername))/"invhsub{}".format(str(isub))
+    if savename.is_file():
+        invres['h'].append(process_inv(savename,ind=31, usingbest=True))
+for isub in range(numasub):
+    dataname="asub{}".format(str(isub))
+    savename=Path("/data/human/{}".format(foldername))/"invasub{}".format(str(isub))
+    if savename.is_file():
+        invres['a'].append(process_inv(savename,ind=31, usingbest=True))
+
+numsamples=100
+adjustratio=len(invres['h'])/len(invres['a'])
+alltag=[]
+allsamples=[]
+for theta,cov,_ in invres['a']:
+    distribution=MultivariateNormal(theta.view(-1),torch.diag(torch.diag(cov)))
+    samples=[]
+    while len(samples)<int(numsamples*adjustratio):
+        a=distribution.sample()
+        if torch.all(a.clamp(0,2)==a):
+            samples.append(a)
+    allsamples.append(torch.stack(samples))
+    alltag+=[1]*int(numsamples*adjustratio)
+for theta,cov,_ in invres['h']:
+    distribution=MultivariateNormal(theta.view(-1),torch.diag(torch.diag(cov)))
+    samples=[]
+    while len(samples)<numsamples:
+        a=distribution.sample()
+        if torch.all(a.clamp(0,2)==a):
+            samples.append(a)
+    allsamples.append(torch.stack(samples))
+    alltag+=[0]*numsamples
+
+allsamples=np.array(torch.cat(allsamples,axis=0))
+alltag=np.array(alltag).astype('int')
+X, Y=allsamples,alltag
+X = X[np.logical_or(Y==0,Y==1)][:,:8]
+Y = Y[np.logical_or(Y==0,Y==1)]
+model = svm.SVC(kernel='linear')
+clf = model.fit(X, Y)
+f_importances(np.abs(clf.coef_[0]),theta_names)
+plt.show()
+
+print('''
+project the individual thetas on to the normal vector.
+''')
+w=clf.coef_[0]
+ticks=X[:,:8].dot(w)
+fig = plt.figure()
+ax  = fig.add_subplot(111)
+ax.hist(ticks[Y==0],density=True,color='b',bins=22,label='health control',alpha=0.6)
+ax.hist(ticks[Y==1],density=True,color='r',bins=22,label='ASD',alpha=0.6)
+quickleg(ax)
+quickspine(ax)
+ax.set_xlabel('param value')
+ax.set_ylabel('probability')
+# quicksave('asd group project svm normal vector no init uncertainty')
+
+# test
+stats.ttest_ind(ticks[Y==0],ticks[Y==1])
+stats.ks_2samp(ticks[Y==0],ticks[Y==1], alternative='two-sided')
+stats.ks_2samp(ticks[Y==0],ticks[Y==1], alternative='less')
+stats.ks_2samp(ticks[Y==0],ticks[Y==1], alternative='greater')
+stats.anderson_ksamp([ticks[Y==0],ticks[Y==1]])
+scipy.special.kl_div(ticks[Y==0][:2019],ticks[Y==1])
+
+
+
+
+# cost obs corr-----------------
+# load inv data
+numhsub,numasub=25,14
+foldername='persub1cont'
+logs={'a':'/data/human/fixragroup','h':'/data/human/clusterpaperhgroup'}
+
+invres={'a':[],'h':[]}
+for isub in range(numhsub):
+    dataname="hsub{}".format(str(isub))
+    savename=Path("/data/human/{}".format(foldername))/"invhsub{}".format(str(isub))
+    if savename.is_file():
+        invres['h'].append(process_inv(savename,ind=31, usingbest=True))
+for isub in range(numasub):
+    dataname="asub{}".format(str(isub))
+    savename=Path("/data/human/{}".format(foldername))/"invasub{}".format(str(isub))
+    if savename.is_file():
+        invres['a'].append(process_inv(savename,ind=31, usingbest=True))
+
+
+npsummary([subcov[1][5,7] for subcov in invres['h']])
+npsummary([subcov[1][5,7] for subcov in invres['a']]+[subcov[1][5,7] for subcov in invres['h']])
 
 

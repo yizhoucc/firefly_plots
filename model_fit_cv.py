@@ -140,6 +140,15 @@ fig=plotctrl_vs(subactions, modelactions, color1='b', color2='r', label1=thesub,
 
 
 # compare validation logll and test logll -----------------------------------------------
+# load data 
+from pathlib import Path
+from plot_ult import *
+
+
+numhsub,numasub=25,14
+fulltrainfolder='persub1cont'
+parttrainfolder='persub3of5dp'
+        
 trainloglls=[]
 testloglls=[]
 subnames=[]
@@ -147,11 +156,28 @@ for invtag in ['h','a']:
     for isub in range(25):
         thesub="{}sub{}".format(invtag,str(isub))
         subnames.append(thesub)
-        if 'trainlogll'+thesub in asd_data_set:
-            trainloglls.append(asd_data_set['trainlogll'+thesub] )
-            testloglls.append(asd_data_set['testlogll'+thesub] )
-     
+        evalname=Path("/data/human/{}/evaltrain_inv{}sub{}".format(parttrainfolder,invtag,str(isub)))
+        fullinverseres=Path("/data/human/{}".format(fulltrainfolder))/"inv{}sub{}".format(invtag,str(isub))
+        partinverseres=Path("/data/human/{}".format(parttrainfolder))/"inv{}sub{}".format(invtag,str(isub))
+        # load test logll
+        if evalname.is_file():
+            with open(evalname, 'rb') as f:
+                a = pickle.load(f)
+                testloglls.append([b[-1] for b in a[-2][2]] )
+        # load train logll
+        if fullinverseres.is_file():
+            with open(fullinverseres, 'rb') as f:
+                a = pickle.load(f)
+                trainloglls.append([b[-1] for b in a[-2][2]] )
 
+# test
+from scipy import stats 
+diffs=[]
+
+for trainll, testll in zip(trainloglls,testloglls):
+    diffs.append(np.array(trainll)- np.array(testll))
+
+np.mean(np.array(diffs))
 
 # for trainlogll, testlogll, thesub in zip(trainloglls,testloglls,subnames):
 #     with initiate_plot(2,2,300) as fig:
@@ -226,7 +252,69 @@ for trainlogll, testlogll, thesub in zip(trainloglls,testloglls,subnames):
         ax.set_title(thesub)
 
 
+# wellness of fit in r2 ---------------------
+numhsub,numasub=25,14
+fulltrainfolder='persub1cont'
+parttrainfolder='persub3of5dp'
+        
+asd_data_set={}
+numhsub,numasub=25,14
+fulltrainfolder='persub1cont'
+parttrainfolder='persub3of5dp'
+for invtag in ['h','a']:
+    for isub in range(numhsub):
+        thesub="{}sub{}".format(invtag,str(isub))
+        evalname=Path("/data/human/{}/evaltrain_inv{}sub{}".format(parttrainfolder,invtag,str(isub)))
+        fullinverseres=Path("/data/human/{}".format(fulltrainfolder))/"inv{}sub{}".format(invtag,str(isub))
+        partinverseres=Path("/data/human/{}".format(parttrainfolder))/"inv{}sub{}".format(invtag,str(isub))
+        # load inv res
+        if partinverseres.is_file():
+            asd_data_set['partres'+thesub]=process_inv(partinverseres, usingbest=True, removegr=False)
+        # if fullinverseres.is_file():
+            asd_data_set['res'+thesub]=process_inv(fullinverseres, usingbest=True, removegr=False)
+        
+        # load data
+        if Path('/data/human/{}'.format(thesub)).is_file():
+            with open('/data/human/{}'.format(thesub), 'rb') as f:
+                states, actions, tasks = pickle.load(f)
+            print(len(states))
+            asd_data_set['data'+thesub]=states, actions, tasks
+        
+ntrial=50
+for invtag in ['h','a']:
+    for isub in range(numhsub):
+        thesub="{}sub{}".format(invtag,str(isub))
+        if 'partres'+thesub in asd_data_set:
+            testtheta=asd_data_set['partres'+thesub][0]
+        else: continue
+        if 'res'+thesub in asd_data_set:
+            traintheta=asd_data_set['res'+thesub][0]
+        thestate, theaction, thetask=asd_data_set['data'+thesub]
 
+        _,response_train_=run_trials_multitask(agent, env, phi, testtheta, thetask[:ntrial],ntrials=1, stimdur=None)
+        _,response_test_=run_trials_multitask(agent, env, phi, traintheta, thetask[:ntrial],ntrials=1, stimdur=None)
+
+        response_train=[]
+        for a,b in zip(theaction[:ntrial], response_train_):
+            padding=torch.zeros(100,2)
+            response_train.append(torch.vstack([b,padding])[:len(a)])
+        response_test=[]
+        for a,b in zip(theaction[:ntrial], response_test_):
+            padding=torch.zeros(100,2)
+            response_test.append(torch.vstack([b,padding])[:len(a)])
+
+        rsqr_train=r2(torch.vstack(theaction[:ntrial]), torch.vstack(response_train))
+        rsqr_test=r2(torch.vstack(theaction[:ntrial]), torch.vstack(response_test))
+        print('{} has training r2 of {}'.format(thesub, rsqr_train))
+        print('{} has testing r2 of {}'.format(thesub, rsqr_test))
+        print('difference is {}'.format(rsqr_train-rsqr_test))
+
+        n=len(torch.vstack(response_train))
+        mse_train=torch.sum((torch.vstack(theaction[:ntrial])- torch.vstack(response_train))**2)/n
+        mse_test=torch.sum((torch.vstack(theaction[:ntrial])- torch.vstack(response_test))**2)/n
+        print('{} has training mse of {}'.format(thesub, mse_train))
+        print('{} has testing mse of {}'.format(thesub, mse_test))
+        print('difference is {}'.format(mse_train-mse_test))
 
 
 # model performance vs actual data ---------------------------
@@ -269,7 +357,7 @@ theta_asd=thetas[0]
 theta_nt=thetas[1]
 
 response_asd,_=run_trials_multitask(agent, env, phi, theta_asd, tasks,ntrials=1, stimdur=None)
-response_nt,_=run_trials_multitask(agent, env, phi, theta_asd, tasks,ntrials=1, stimdur=None)
+response_nt,_=run_trials_multitask(agent, env, phi, theta_nt, tasks,ntrials=1, stimdur=None)
 
 asd_data_endpoint={}
 asd_data_endpoint_polar={}
@@ -338,11 +426,9 @@ quickoverhead_state(astate,tasks)
 import numpy as np
 from plot_ult import * 
 from scipy import stats 
-from sklearn import svm
 import matplotlib
 from playsound import playsound
 import matplotlib.pyplot as plt
-from sklearn import svm
 import numpy as np
 import os
 import pandas as pd

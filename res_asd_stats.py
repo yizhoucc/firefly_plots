@@ -6,7 +6,6 @@ from plot_ult import *
 from scipy import stats 
 from sklearn import svm
 import matplotlib
-from playsound import playsound
 import matplotlib.pyplot as plt
 from sklearn import svm
 import numpy as np
@@ -91,28 +90,29 @@ for invtag in ['h','a']:
             asd_data_endpoint[thesub]=(endpoint, tasks)
             asd_data_endpoint_polar[thesub]=(endpointpolar, taskspolar)
 
-# xy coord
-for thesub in asd_data_endpoint.keys():
-    f=plt.figure()
-    f.add_subplot(111)
-    (endpoint, tasks)=asd_data_endpoint[thesub]
-    plt.scatter(endpoint[:,0],endpoint[:,1])
-    plt.scatter(tasks[:,0],tasks[:,1])
-    plt.axis('equal')
-    plt.show()
+# same checks
+# # xy coord
+# for thesub in asd_data_endpoint.keys():
+#     f=plt.figure()
+#     f.add_subplot(111)
+#     (endpoint, tasks)=asd_data_endpoint[thesub]
+#     plt.scatter(endpoint[:,0],endpoint[:,1])
+#     plt.scatter(tasks[:,0],tasks[:,1])
+#     plt.axis('equal')
+#     plt.show()
 
-# polar
-for thesub in asd_data_endpoint_polar.keys():
-    f=plt.figure()
-    f.add_subplot(111, polar=True)
-    (endpoint, tasks)=asd_data_endpoint_polar[thesub]
-    plt.scatter(endpoint[:,0],endpoint[:,1])
-    plt.scatter(tasks[:,0],tasks[:,1])
-    plt.show()
+# # polar
+# for thesub in asd_data_endpoint_polar.keys():
+#     f=plt.figure()
+#     f.add_subplot(111, polar=True)
+#     (endpoint, tasks)=asd_data_endpoint_polar[thesub]
+#     plt.scatter(endpoint[:,0],endpoint[:,1])
+#     plt.scatter(tasks[:,0],tasks[:,1])
+#     plt.show()
 
 
-# as a group, linear regression of the angular err 
-xa, ya, xh, yh =[],[],[],[]
+# as a group, regression of the angular err 
+xa, ya, xh, yh =[],[],[],[] 
 for thesub in asd_data_endpoint_polar.keys():
     (endpoint, tasks)=asd_data_endpoint_polar[thesub]
     if thesub[0]=='a': 
@@ -121,13 +121,12 @@ for thesub in asd_data_endpoint_polar.keys():
     else: 
         xh.append(tasks[:,0])
         yh.append(endpoint[:,0])
-
 xa, ya, xh, yh =np.hstack(xa),np.hstack(ya),np.hstack(xh),np.hstack(yh)
-stats.linregress(xa,ya)
-stats.linregress(xh, yh)
+stats.linregress(xa, ya) # stop vs target angle, asd
+stats.linregress(xh, yh) # stop vs target angle, nt
 
 
-# as a group, linear regression of the radial err 
+# as a group, regression of the radial err 
 xa, ya, xh, yh =[],[],[],[]
 for thesub in asd_data_endpoint_polar.keys():
     (endpoint, tasks)=asd_data_endpoint_polar[thesub]
@@ -137,13 +136,12 @@ for thesub in asd_data_endpoint_polar.keys():
     else: 
         xh.append(tasks[:,1])
         yh.append(endpoint[:,1])
-
 xa, ya, xh, yh =np.hstack(xa),np.hstack(ya),np.hstack(xh),np.hstack(yh)
-stats.linregress(xa,ya)
-stats.linregress(xh, yh)
+stats.linregress(xa,ya) # stop vs target dist, asd
+stats.linregress(xh, yh) # stop vs target dist, nt
 
 
-# per sub, linear regression of the angular err 
+# per sub, regression of the angular err 
 xa, ya, xh, yh =[],[],[],[]
 ares, hres=[],[]
 for thesub in asd_data_endpoint_polar.keys():
@@ -153,19 +151,21 @@ for thesub in asd_data_endpoint_polar.keys():
     else: 
         hres.append(stats.linregress(tasks[:,0],endpoint[:,0]))
 
-npsummary([a.slope for a in ares])
-npsummary([a.slope for a in hres])
+npsummary([a.slope for a in ares]) # angular gain, asd
+npsummary([a.slope for a in hres]) # angular gain, nt
+stats.ttest_ind([a.slope for a in ares],[a.slope for a in hres]) # angular gain, asd vs nt
 
-stats.ttest_ind([a.slope for a in ares],[a.slope for a in hres])
-
-npsummary([a.rvalue**2 for a in ares])
-npsummary([a.rvalue**2 for a in hres])
+npsummary([a.rvalue**2 for a in ares]) # angular fit, asd
+npsummary([a.rvalue**2 for a in hres]) # angular fit, nt
+stats.ttest_ind([a.rvalue**2 for a in ares],[a.rvalue**2 for a in hres]) # angular fit, asd vs nt
 
 npsummary([a.pvalue for a in ares])
 npsummary([a.pvalue for a in hres])
+stats.ttest_ind([a.slope for a in ares],[1 for _ in ares]) # angular gain vs 1, asd
+stats.ttest_ind([a.slope for a in hres], [1 for _ in hres]) # angular gain vs 1, nt
 
 
-# per sub, linear regression of the radial err 
+# per sub, regression of the radial err 
 xa, ya, xh, yh =[],[],[],[]
 ares, hres=[],[]
 for thesub in asd_data_endpoint_polar.keys():
@@ -175,13 +175,20 @@ for thesub in asd_data_endpoint_polar.keys():
     else: 
         hres.append(stats.linregress(tasks[:,1],endpoint[:,1]))
 
-npsummary([a.slope for a in ares])
-npsummary([a.slope for a in hres])
+npsummary([a.slope for a in ares]) # radial gain, asd
+npsummary([a.slope for a in hres]) # radial gain, nt
 
-stats.ttest_ind([a.slope for a in ares],[a.slope for a in hres])
+stats.ttest_ind([a.rvalue**2 for a in ares],[a.rvalue**2 for a in hres]) # radial fit, asd vs nt
+
+stats.ttest_ind([a.slope for a in ares],[a.slope for a in hres]) # radial gain, asd vs nt
+
+stats.ttest_ind([a.slope for a in ares],[1 for _ in ares]) # radial gain vs 1, asd
+stats.ttest_ind([a.slope for a in hres], [1 for _ in hres]) # radial gain vs 1, nt
 
 
-# per sub, error of first half vs later half 
+
+
+# per sub, error of first half vs later half (showing no learning)
 xa, ya, xh, yh =[],[],[],[]
 ares, hres=[],[] # first half
 ares2, hres2=[],[] # latter half
@@ -508,9 +515,14 @@ ax.set_ylabel('probability')
 quickspine(ax)
 # quicksave('svm on end response')
 
-# t test cannot seperate
+# test cannot seperate
 stats.ttest_ind(ticks[Y==0],ticks[Y==1])
-stats.ks_2samp(ticks[Y==0],ticks[Y==1])
+stats.ks_2samp(ticks[Y==0],ticks[Y==1], alternative='two-sided')
+stats.ks_2samp(ticks[Y==0],ticks[Y==1], alternative='less')
+stats.ks_2samp(ticks[Y==0],ticks[Y==1], alternative='greater')
+stats.anderson_ksamp([ticks[Y==0],ticks[Y==1]])
+stats.weightstats.ztest(ticks[Y==0],ticks[Y==1])
+scipy.special.kl_div(ticks[Y==0][:2019],ticks[Y==1])
 
 
 # # hit rates and false alarm rates
@@ -644,7 +656,7 @@ quickspine(ax)
 
 # t test can seperate
 stats.ttest_ind(ticks[Y==0],ticks[Y==1])
-stats.ks_2samp(ticks[Y==0],ticks[Y==1])
+# stats.ks_2samp(ticks[Y==0],ticks[Y==1])
 
 
 # raw curve

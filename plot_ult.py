@@ -6177,5 +6177,46 @@ def relu(arr):
     return arr
     
 
+def r2(actual,predict):
+    corr_matrix = np.corrcoef(actual, predict)
+    corr = corr_matrix[0,1]
+    R_sq = corr**2
+    return R_sq
+
+
+def calculate_costw(actions,mintime):
+    mintime-=1
+    costs=[np.sum( (np.power((np.diff(np.array(a), axis=0)),2)), axis=1) for a in actions]
+    costsmu=[np.mean([a[t] for a in costs]) for t in range(mintime)]
+    costserr=[np.std([a[t] for a in costs]) for t in range(mintime)]
+    return costs,costsmu,costserr
+
+def calculate_cost(actions,mintime):
+    mintime-=1
+    vcosts=[np.sum( (np.power(relu(np.diff(np.array(a[:,0]).reshape(-1,1), axis=0)),2)), axis=1) for a in actions]
+    wcosts=[np.sum( (np.power((np.diff(np.array(a[:,1]).reshape(-1,1), axis=0)),2)), axis=1) for a in actions]
+    costs=vcosts+wcosts
+    costsmu=[np.mean([a[t] for a in costs]) for t in range(mintime)]
+    costserr=[np.std([a[t] for a in costs]) for t in range(mintime)]
+    return costs,costsmu,costserr
+
+def calculate_cost(actions,mintime=None):
+    maxlen=max([len(c) for c in actions])
+    paddedactions=[np.pad(a, ((0,maxlen-len(a)), (0,0)), 'constant', constant_values=np.nan) for a in actions]
+    paddedactions=np.stack(paddedactions)
+    vcosts=[np.sum( (np.power(relu(np.diff(np.array(a[:,0]).reshape(-1,1), axis=0)),2)), axis=1) for a in paddedactions]
+    wcosts=[np.sum( (np.power((np.diff(np.array(a[:,1]).reshape(-1,1), axis=0)),2)), axis=1) for a in paddedactions]
+    costs=vcosts+wcosts
+    costsmu=np.nanmean(costs,axis=0)
+    costserr=np.nanstd(costs,axis=0)
+    return costs,costsmu,costserr
+
+
+def calculate_cost(actions,mintime):
+    mintime-=1
+    costs=[np.sum((np.power(relu(np.diff(np.array(a), axis=0)),2)), axis=1)**0.5 for a in actions]
+    costsmu=[np.mean([a[t] for a in costs]) for t in range(mintime)]
+    costserr=[np.std([a[t] for a in costs]) for t in range(mintime)]
+    return costs,costsmu,costserr
 
 

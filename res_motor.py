@@ -1002,13 +1002,10 @@ with initiate_plot(2,2,300) as fig:
 
 
 
-    
-def relu(arr):
-    arr[arr<0]=0
-    return arr
-
-thetask=[3,1]
+# three together. high.low cost, no adjust 0516 --------------------
+thetask=[2.5,1.5]
 ntrial=5
+pertstart=10
 phi=torch.tensor([[1],   
                 [pi/2],   
                 [0.0],   
@@ -1020,6 +1017,524 @@ phi=torch.tensor([[1],
                 [0.5],   
                 [0.5],   
                 [0.5]])
+# given_obs=torch.vstack([torch.ones(size=(pertstart,2))*1.9, -0.1*torch.ones(size=(95,2))])
+given_obs=torch.hstack(
+    [torch.ones(size=(99,1))*0.,
+    torch.vstack([torch.ones(size=(5,1))*0., -1.6*torch.ones(size=(10,1)) ,0.*torch.ones(size=(99-5*3,1))])])
+
+# given_obs=torch.normal(torch.zeros(100,2),0.3)
+
+basetheta=torch.tensor([[1],   
+                        [pi/2],   
+                        [0.5],   
+                        [0.5],   
+                        [0.0],   
+                        [0.0],   
+                        [0.13],   
+                        [0.1],   
+                        [0.01],   
+                        [0.01],   
+                        [0.01]])
+# low cost
+theta1=basetheta.clone()
+theta1[8]=0.01
+states1,actions1, beliefs1, covs1=run_trials(agent=agent, env=env, phi=phi, theta=theta1,task=thetask,ntrials=ntrial,given_obs=given_obs,return_belief=True)
+# high cost
+theta2=basetheta.clone()
+theta2[8]=0.9
+states2,actions2, beliefs2, covs2=run_trials(agent=agent, env=env, phi=phi, theta=theta2,task=thetask,ntrials=ntrial,given_obs=given_obs,return_belief=True)
+# no adj
+states3,actions3, beliefs3, covs3=run_trials(agent=agent, env=env, phi=phi, theta=theta2,task=thetask,ntrials=ntrial,pert=None,given_obs=None,return_belief=True)
+
+mintimebuffer=10
+mintime=min([len(s) for s in states1]+[len(s) for s in states2]+[len(s) for s in states3])+mintimebuffer
+states1=[s[:mintime] for s in states1]
+actions1=[s[:mintime] for s in actions1]
+states2=[s[:mintime] for s in states2]
+actions2=[s[:mintime] for s in actions2]
+states3=[s[:mintime] for s in states3]
+actions3=[s[:mintime] for s in actions3]
+
+# overhead
+with initiate_plot(9,3, 300) as fig:
+    ax = fig.add_subplot(131)
+    ax.set_aspect('equal')
+    ax.axes.xaxis.set_ticks([]); ax.axes.yaxis.set_ticks([])
+    # ax.set_xlim([-235, 235]); ax.set_ylim([-2, 430])
+    xrange=np.cos(pi/180*(90-42.5))*600
+    x_temp = np.linspace(-xrange, xrange)
+    ax.plot(x_temp, np.sqrt(600**2 - x_temp**2), c='k', ls=':')
+    ax.text(-10, 625, s=r'$85\degree$', fontsize=fontsize)
+    ax.plot(np.linspace(-300, -200), np.linspace(-100, -100), c='k') # 100 is cm
+    ax.plot(np.linspace(-300, -300), np.linspace(-100, 0), c='k')
+    ax.text(-230, -200, s=r'$1 m$', fontsize=fontsize)
+    ax.scatter(0,0, marker='*', color='black', s=55) 
+    for s in beliefs1:
+        ax.plot(s[:,1]*200, s[:,0]*200, color='black')
+    for s in beliefs1:
+        ax.plot(s[pertstart:pertstart+10,1]*200, s[pertstart:pertstart+10,0]*200, color='r')
+
+    plot_circle(np.eye(2)*65,[thetask[1]*200,thetask[0]*200],ax=ax,edgecolor='k')
+    ax.axis('equal')
+    quickallspine(ax)
+
+    ax = fig.add_subplot(132)
+    ax.set_aspect('equal')
+    ax.axes.xaxis.set_ticks([]); ax.axes.yaxis.set_ticks([])
+    # ax.set_xlim([-235, 235]); ax.set_ylim([-2, 430])
+    xrange=np.cos(pi/180*(90-42.5))*600
+    x_temp = np.linspace(-xrange, xrange)
+    ax.plot(x_temp, np.sqrt(600**2 - x_temp**2), c='k', ls=':')
+    ax.text(-10, 625, s=r'$85\degree$', fontsize=fontsize)
+    ax.plot(np.linspace(-300, -200), np.linspace(-100, -100), c='k') # 100 is cm
+    ax.plot(np.linspace(-300, -300), np.linspace(-100, 0), c='k')
+    ax.text(-230, -200, s=r'$1 m$', fontsize=fontsize)
+    ax.scatter(0,0, marker='*', color='black', s=55) 
+
+    for s in beliefs2:
+        ax.plot(s[:,1]*200, s[:,0]*200, color='black')
+    for s in beliefs2:
+        ax.plot(s[pertstart:pertstart+10,1]*200, s[pertstart:pertstart+10,0]*200, color='r')
+
+    plot_circle(np.eye(2)*65,[thetask[1]*200,thetask[0]*200],ax=ax,edgecolor='k')
+    ax.axis('equal')
+    quickallspine(ax)
+
+    ax = fig.add_subplot(133)
+    ax.set_aspect('equal')
+    ax.axes.xaxis.set_ticks([]); ax.axes.yaxis.set_ticks([])
+    # ax.set_xlim([-235, 235]); ax.set_ylim([-2, 430])
+    xrange=np.cos(pi/180*(90-42.5))*600
+    x_temp = np.linspace(-xrange, xrange)
+    ax.plot(x_temp, np.sqrt(600**2 - x_temp**2), c='k', ls=':')
+    ax.text(-10, 625, s=r'$85\degree$', fontsize=fontsize)
+    ax.plot(np.linspace(-300, -200), np.linspace(-100, -100), c='k') # 100 is cm
+    ax.plot(np.linspace(-300, -300), np.linspace(-100, 0), c='k')
+    ax.text(-230, -200, s=r'$1 m$', fontsize=fontsize)
+    ax.scatter(0,0, marker='*', color='black', s=55) 
+
+    for s in beliefs3:
+        ax.plot(s[:,1]*200, s[:,0]*200, color='black')
+    for s in beliefs3:
+        ax.plot(s[pertstart:pertstart+10,1]*200, s[pertstart:pertstart+10,0]*200, color='r')
+    plot_circle(np.eye(2)*65,[thetask[1]*200,thetask[0]*200],ax=ax,edgecolor='k')
+    ax.axis('equal')
+    quickallspine(ax)
+
+    # quicksave('model low cost overhead')
+quicksave('3 case cost vs adjustment overhead2', fig=ax.get_figure())
+
+# v and w control curve
+labels=[r'$v$',r'$w$']
+num_trials=len(actions1)
+with initiate_plot(9,3, 300) as fig, warnings.catch_warnings():
+    # low cost
+    ax= fig.add_subplot(231)
+    ax.set_ylabel(r'control $v$')
+    quickspine(ax)
+    # ax.spines['bottom'].set_visible(False)
+    plt.xlim(0,mintime/10)
+    plt.ylim(0,1.1)
+    plt.yticks([0,1])
+    for trial_i in range(num_trials):
+        ax.plot(np.arange(0,len(actions1[trial_i][:,0])/10,0.1),actions1[trial_i][:,0],color='k', label=labels[0])
+    for trial_i in range(num_trials):
+        ax.plot(np.arange(0,len(actions1[trial_i][pertstart:pertstart+10,0])/10,0.1)+pertstart/10,actions1[trial_i][pertstart:pertstart+10,0],color='r', label=labels[0])
+
+    
+    ax= fig.add_subplot(234)
+    ax.set_ylabel(r'control $w$')
+    ax.set_xlabel('time [s]')
+    quickspine(ax)
+    ax.spines['bottom'].set_visible(False)
+    plt.plot([0,mintime/10],[0,0],'k', linewidth=1)
+    for trial_i in range(num_trials):
+        ax.plot(np.arange(0,len(actions1[trial_i][:,0])/10,0.1),actions1[trial_i][:,1],color='k', label=labels[0])
+    for trial_i in range(num_trials):
+        ax.plot(np.arange(0,len(actions1[trial_i][pertstart:pertstart+10,1])/10,0.1)+pertstart/10,actions1[trial_i][pertstart:pertstart+10,1],color='r', label=labels[0])
+    plt.xlim(0,mintime/10)
+    plt.ylim(-1,1)
+    plt.yticks([-1,0,1])
+
+    # high cost
+    ax= fig.add_subplot(232)
+    # ax.set_ylabel(r'control $v$')
+    quickspine(ax)
+    # ax.spines['bottom'].set_visible(False)
+    plt.xlim(0,mintime/10)
+    plt.ylim(0,1.1)
+    plt.yticks([0,1])
+    for trial_i in range(num_trials):
+        ax.plot(np.arange(0,len(actions2[trial_i][:,0])/10,0.1),actions2[trial_i][:,0],color='k', label=labels[0])
+    for trial_i in range(num_trials):
+        ax.plot(np.arange(0,len(actions2[trial_i][pertstart:pertstart+10,0])/10,0.1)+pertstart/10,actions2[trial_i][pertstart:pertstart+10,0],color='r', label=labels[0])
+   
+    ax= fig.add_subplot(235)
+    # ax.set_ylabel(r'control $w$')
+    ax.set_xlabel('time [s]')
+    quickspine(ax)
+    ax.spines['bottom'].set_visible(False)
+    plt.plot([0,mintime/10],[0,0],'k', linewidth=1)
+    for trial_i in range(num_trials):
+        ax.plot(np.arange(0,len(actions2[trial_i][:,1])/10,0.1),actions2[trial_i][:,1],color='k', label=labels[0])
+    for trial_i in range(num_trials):
+        ax.plot(np.arange(0,len(actions2[trial_i][pertstart:pertstart+10,1])/10,0.1)+pertstart/10,actions2[trial_i][pertstart:pertstart+10,1],color='r', label=labels[0])
+    plt.xlim(0,mintime/10)
+    plt.ylim(-1,1)
+    plt.yticks([-1,0,1])
+
+    # no adj
+    ax= fig.add_subplot(233)
+    # ax.set_ylabel(r'control $v$')
+    quickspine(ax)
+    # ax.spines['bottom'].set_visible(False)
+    plt.xlim(0,mintime/10)
+    plt.ylim(0,1.1)
+    plt.yticks([0,1])
+    for trial_i in range(num_trials):
+        ax.plot(np.arange(0,len(actions3[trial_i][:,0])/10,0.1),actions3[trial_i][:,0],color='k', label=labels[0])
+    for trial_i in range(num_trials):
+        ax.plot(np.arange(0,len(actions3[trial_i][pertstart:pertstart+10,0])/10,0.1)+pertstart/10,actions3[trial_i][pertstart:pertstart+10,0],color='r', label=labels[0])
+    ax= fig.add_subplot(236)
+    # ax.set_ylabel(r'control $w$')
+    ax.set_xlabel('time [s]')
+    quickspine(ax)
+    ax.spines['bottom'].set_visible(False)
+    plt.plot([0,mintime/10],[0,0],'k', linewidth=1)
+    for trial_i in range(num_trials):
+        ax.plot(np.arange(0,len(actions3[trial_i][:,0])/10,0.1),actions3[trial_i][:,1],color='k', label=labels[0])
+    for trial_i in range(num_trials):
+        ax.plot(np.arange(0,len(actions3[trial_i][pertstart:pertstart+10,1])/10,0.1)+pertstart/10,actions3[trial_i][pertstart:pertstart+10,1],color='r', label=labels[0])
+    plt.xlim(0,mintime/10)
+    plt.ylim(-1,1)
+    plt.yticks([-1,0,1])
+
+
+    plt.tight_layout()
+quicksave('3 case cost vs adjustment ctrl curve2', fig=ax.get_figure())
+
+# cost
+mintime-=mintimebuffer
+# angular cost
+with initiate_plot(9,1,300) as fig:
+    ax=fig.add_subplot(131)
+    costs,costsmu,costserr= calculate_costw([a[:,1].view(-1,1) for a in actions1],mintime)
+    ax.errorbar(np.arange(0,len(costsmu)/10,0.1), costsmu, yerr=costserr,color='k')
+    quickspine(ax)
+    ax.set_ylabel('objective cost')
+    ax.set_xlabel('time [s]')
+    ax.set_xlim(0,None)
+    ax.set_ylim(0,0.05)
+    ax.set_xlim(pertstart/10,mintime/10)
+    plt.title(sum(costsmu[pertstart:]))
+    # plt.title(sum(costsmu))
+
+
+    ax=fig.add_subplot(132, sharey=ax)
+    costs,costsmu,costserr= calculate_costw([a[:,1].view(-1,1) for a in actions2],mintime)
+    ax.errorbar(np.arange(0,len(costsmu)/10,0.1), costsmu, yerr=costserr,color='k')
+    quickspine(ax)
+    ax.set_xlabel('time [s]')
+    ax.set_xlim(pertstart/10,mintime/10)
+    plt.title(sum(costsmu[pertstart:]))
+    # plt.title(sum(costsmu))
+
+    ax=fig.add_subplot(133, sharey=ax)
+    costs,costsmu,costserr= calculate_costw([a[:,1].view(-1,1) for a in actions3],mintime)
+    ax.errorbar(np.arange(0,len(costsmu)/10,0.1), costsmu, yerr=costserr,color='k')
+    quickspine(ax)
+    ax.set_xlabel('time [s]')
+    ax.set_xlim(pertstart/10,mintime/10)
+    plt.title(sum(costsmu[pertstart:]))
+    # plt.title(sum(costsmu))
+
+    # quicksave('low cost adjustment cost')
+
+# total cost
+with initiate_plot(9,1,300) as fig:
+    ax=fig.add_subplot(131)
+    costs,costsmu,costserr= calculate_cost(actions1,mintime)
+    ax.errorbar(np.arange(0,len(costsmu)/10,0.1), costsmu, yerr=costserr,color='k')
+    ax.errorbar(np.arange(0,len(costsmu)/10,0.1)[pertstart:pertstart+10], costsmu[pertstart:pertstart+10], yerr=costserr[pertstart:pertstart+10],color='r')
+    quickspine(ax)
+    ax.set_ylabel('objective cost')
+    ax.set_xlabel('time [s]')
+    ax.set_xlim(0,None)
+    ax.set_ylim(0,0.03)
+    ax.set_xlim(0,mintime/10+1)
+    plt.xticks([0,1,2,3])
+    plt.title('total cost after pert: {:.2f}'.format(sum(costsmu[pertstart:])))
+    # plt.title(sum(costsmu))
+
+
+    ax=fig.add_subplot(132, sharey=ax)
+    costs,costsmu,costserr= calculate_cost(actions2,mintime)
+    ax.errorbar(np.arange(0,len(costsmu)/10,0.1), costsmu, yerr=costserr,color='k')
+    ax.errorbar(np.arange(0,len(costsmu)/10,0.1)[pertstart:pertstart+10], costsmu[pertstart:pertstart+10], yerr=costserr[pertstart:pertstart+10],color='r')
+    quickspine(ax)
+    ax.set_xlabel('time [s]')
+    ax.set_xlim(0,mintime/10+1)
+    plt.xticks([0,1,2,3])
+    plt.title('total cost after pert: {:.2f}'.format(sum(costsmu[pertstart:])))
+    # plt.title(sum(costsmu))
+
+    ax=fig.add_subplot(133, sharey=ax)
+    costs,costsmu,costserr= calculate_cost(actions3,mintime)
+    ax.errorbar(np.arange(0,len(costsmu)/10,0.1), costsmu, yerr=costserr,color='k')
+    ax.errorbar(np.arange(0,len(costsmu)/10,0.1)[pertstart:pertstart+10], costsmu[pertstart:pertstart+10], yerr=costserr[pertstart:pertstart+10],color='r')
+    quickspine(ax)
+    ax.set_xlabel('time [s]')
+    ax.set_xlim(0,mintime/10+1)
+    plt.xticks([0,1,2,3])
+    plt.title('total cost after pert: {:.2f}'.format(sum(costsmu[pertstart:])))
+    # plt.title(sum(costsmu))
+
+    plt.tight_layout()
+
+# quicksave('3 case cost vs adjustment cost2', fig=ax.get_figure())
+
+# v and w and cost all together
+labels=[r'$v$',r'$w$']
+num_trials=len(actions1)
+with initiate_plot(9,5, 300) as fig, warnings.catch_warnings():
+    # low cost
+    ax= fig.add_subplot(331)
+    ax.set_ylabel(r'control $v$')
+    quickspine(ax)
+    # ax.spines['bottom'].set_visible(False)
+    plt.xlim(0,mintime/10)
+    plt.ylim(0,1)
+    plt.yticks([0,1])
+    ax.set_yticklabels([0,2])
+    for trial_i in range(num_trials):
+        ax.plot(np.arange(0,len(actions1[trial_i][:,0])/10,0.1),actions1[trial_i][:,0],color='k', label=labels[0])
+    for trial_i in range(num_trials):
+        ax.plot(np.arange(0,len(actions1[trial_i][pertstart:pertstart+10,0])/10,0.1)+pertstart/10,actions1[trial_i][pertstart:pertstart+10,0],color='r', label=labels[0])
+
+    ax= fig.add_subplot(332, sharey=ax)
+    # ax.set_ylabel(r'control $v$')
+    quickspine(ax)
+    # ax.spines['bottom'].set_visible(False)
+    plt.xlim(0,mintime/10)
+    plt.ylim(0,1.1)
+    plt.yticks([0,1])
+    for trial_i in range(num_trials):
+        ax.plot(np.arange(0,len(actions2[trial_i][:,0])/10,0.1),actions2[trial_i][:,0],color='k', label=labels[0])
+    for trial_i in range(num_trials):
+        ax.plot(np.arange(0,len(actions2[trial_i][pertstart:pertstart+10,0])/10,0.1)+pertstart/10,actions2[trial_i][pertstart:pertstart+10,0],color='r', label=labels[0])
+   
+    ax= fig.add_subplot(333, sharey=ax)
+    # ax.set_ylabel(r'control $v$')
+    quickspine(ax)
+    # ax.spines['bottom'].set_visible(False)
+    plt.xlim(0,mintime/10)
+    plt.ylim(0,1.1)
+    plt.yticks([0,1])
+    for trial_i in range(num_trials):
+        ax.plot(np.arange(0,len(actions3[trial_i][:,0])/10,0.1),actions3[trial_i][:,0],color='k', label=labels[0])
+    for trial_i in range(num_trials):
+        ax.plot(np.arange(0,len(actions3[trial_i][pertstart:pertstart+10,0])/10,0.1)+pertstart/10,actions3[trial_i][pertstart:pertstart+10,0],color='r', label=labels[0])
+
+    ax= fig.add_subplot(334)
+    ax.set_ylabel(r'control $w$')
+    ax.set_xlabel('time [s]')
+    quickspine(ax)
+    ax.spines['bottom'].set_visible(False)
+    plt.plot([0,mintime/10],[0,0],'k', linewidth=1)
+    for trial_i in range(num_trials):
+        ax.plot(np.arange(0,len(actions1[trial_i][:,0])/10,0.1),actions1[trial_i][:,1],color='k', label=labels[0])
+    for trial_i in range(num_trials):
+        ax.plot(np.arange(0,len(actions1[trial_i][pertstart:pertstart+10,1])/10,0.1)+pertstart/10,actions1[trial_i][pertstart:pertstart+10,1],color='r', label=labels[0])
+    plt.xlim(0,mintime/10)
+    plt.ylim(-pi/2,0,pi/2)
+    plt.yticks([-pi/2,0,pi/2])
+    ax.set_yticklabels([-90,0,90])
+
+    ax= fig.add_subplot(335, sharey=ax)
+    # ax.set_ylabel(r'control $w$')
+    ax.set_xlabel('time [s]')
+    quickspine(ax)
+    ax.spines['bottom'].set_visible(False)
+    plt.plot([0,mintime/10],[0,0],'k', linewidth=1)
+    for trial_i in range(num_trials):
+        ax.plot(np.arange(0,len(actions2[trial_i][:,1])/10,0.1),actions2[trial_i][:,1],color='k', label=labels[0])
+    for trial_i in range(num_trials):
+        ax.plot(np.arange(0,len(actions2[trial_i][pertstart:pertstart+10,1])/10,0.1)+pertstart/10,actions2[trial_i][pertstart:pertstart+10,1],color='r', label=labels[0])
+    plt.xlim(0,mintime/10)
+
+    ax= fig.add_subplot(336, sharey=ax)
+    # ax.set_ylabel(r'control $w$')
+    ax.set_xlabel('time [s]')
+    quickspine(ax)
+    ax.spines['bottom'].set_visible(False)
+    plt.plot([0,mintime/10],[0,0],'k', linewidth=1)
+    for trial_i in range(num_trials):
+        ax.plot(np.arange(0,len(actions3[trial_i][:,0])/10,0.1),actions3[trial_i][:,1],color='k', label=labels[0])
+    for trial_i in range(num_trials):
+        ax.plot(np.arange(0,len(actions3[trial_i][pertstart:pertstart+10,1])/10,0.1)+pertstart/10,actions3[trial_i][pertstart:pertstart+10,1],color='r', label=labels[0])
+    plt.xlim(0,mintime/10)
+
+
+    ax=fig.add_subplot(337, sharex=ax)
+    costs,costsmu,costserr= calculate_cost(actions1,mintime)
+    ax.errorbar(np.arange(0,len(costsmu)/10,0.1), costsmu, yerr=costserr,color='k')
+    ax.errorbar(np.arange(0,len(costsmu)/10,0.1)[pertstart:pertstart+10], costsmu[pertstart:pertstart+10], yerr=costserr[pertstart:pertstart+10],color='r')
+    quickspine(ax)
+    ax.set_ylabel('objective cost')
+    ax.set_xlabel('time [s]')
+    ax.set_ylim(0,0.03)
+    plt.title('cost during pert: {:.2f}'.format(sum(costsmu[pertstart:pertstart+10])))
+
+    ax=fig.add_subplot(338, sharey=ax, sharex=ax)
+    costs,costsmu,costserr= calculate_cost(actions2,mintime)
+    ax.errorbar(np.arange(0,len(costsmu)/10,0.1), costsmu, yerr=costserr,color='k')
+    ax.errorbar(np.arange(0,len(costsmu)/10,0.1)[pertstart:pertstart+10], costsmu[pertstart:pertstart+10], yerr=costserr[pertstart:pertstart+10],color='r')
+    quickspine(ax)
+    ax.set_xlabel('time [s]')
+
+    plt.title('cost during pert: {:.2f}'.format(sum(costsmu[pertstart:pertstart+10])))
+    # plt.title('cost during pert: {:.2f}'.format(sum(costsmu[pertstart:pertstart+10]))+'\n cost after pert: {:.2f}'.format(sum(costsmu[pertstart:]))+'\n total cost: {:.2f}'.format(sum(costsmu)))
+    # plt.title('cost during pert: {:.2f}'.format(sum(costsmu[pertstart:pertstart+10]))+'\n cost after pert: {:.2f}'.format(sum(costsmu[pertstart:])))    # plt.title(sum(costsmu))
+
+    ax=fig.add_subplot(339, sharey=ax, sharex=ax)
+    costs,costsmu,costserr= calculate_cost(actions3,mintime)
+    ax.errorbar(np.arange(0,len(costsmu)/10,0.1), costsmu, yerr=costserr,color='k')
+    ax.errorbar(np.arange(0,len(costsmu)/10,0.1)[pertstart:pertstart+10], costsmu[pertstart:pertstart+10], yerr=costserr[pertstart:pertstart+10],color='r')
+    quickspine(ax)
+    ax.set_xlabel('time [s]')
+    plt.title('cost during pert: {:.2f}'.format(sum(costsmu[pertstart:pertstart+10])))
+
+    plt.tight_layout()
+
+quicksave('3 case cost vs adjustment ctrl and cost 2', fig=ax.get_figure())
+
+
+
+
+
+
+
+
+
+# high cost
+theta=torch.tensor([[1],   
+                        [pi/2],   
+                        [0.2],   
+                        [0.2],   
+                        [0.0],   
+                        [0.0],   
+                        [0.13],   
+                        [0.9],   
+                        [0.9],   
+                        [0.5],   
+                        [0.5]])
+states,actions, beliefs, covs=run_trials(agent=agent, env=env, phi=phi, theta=theta,task=thetask,ntrials=ntrial,given_obs=given_obs,return_belief=True)
+mintime=min([len(s) for s in states])+5
+states=[s[:mintime] for s in states]
+actions=[s[:mintime] for s in actions]
+# quickoverhead_state(states, np.array([thetask]*2), color='b')
+# ax=quickoverhead_state(beliefs, np.array([thetask]*2), color='r')
+with initiate_plot(3,3, 300) as fig:
+    ax = fig.add_subplot(111)
+    ax.set_aspect('equal')
+    ax.axes.xaxis.set_ticks([]); ax.axes.yaxis.set_ticks([])
+    # ax.set_xlim([-235, 235]); ax.set_ylim([-2, 430])
+    xrange=np.cos(pi/180*(90-42.5))*600
+    x_temp = np.linspace(-xrange, xrange)
+    ax.plot(x_temp, np.sqrt(600**2 - x_temp**2), c='k', ls=':')
+    ax.text(-10, 625, s=r'$85\degree$', fontsize=fontsize)
+    ax.plot(np.linspace(-300, -200), np.linspace(-100, -100), c='k') # 100 is cm
+    ax.plot(np.linspace(-300, -300), np.linspace(-100, 0), c='k')
+    ax.text(-230, -200, s=r'$1 m$', fontsize=fontsize)
+    ax.scatter(0,0, marker='*', color='black', s=55) 
+
+    for s in beliefs:
+        ax.plot(s[:,1]*200, s[:,0]*200, color='black')
+    plot_circle(np.eye(2)*65,[thetask[1]*200,thetask[0]*200],ax=ax,edgecolor='k')
+    ax.axis('equal')
+    # quickleg(ax)
+    quickallspine(ax)
+    # quicksave('model high cost overhead')
+# quicksave('high cost adjustment overhead', fig=ax.get_figure())
+ax,_=plotctrlasd(actions)
+ax.set_xlim(0,4)
+quicksave('high cost adjustment control',fig=ax.get_figure())
+# ax,_=plotctrlasd([given_obs[:29]])
+# quicksave('biased observation',fig=ax.get_figure())
+costs=[np.sum( (np.power(relu(np.diff(np.array(a), axis=0)),2)), axis=1) for a in actions]
+minlen=min([len(a) for a in costs])
+costsmu=[np.mean([a[t] for a in costs]) for t in range(minlen)]
+costserr=[np.std([a[t] for a in costs]) for t in range(minlen)]
+with initiate_plot(3,1,300) as fig:
+    ax=fig.add_subplot(111)
+    ax.errorbar(np.arange(0,len(costsmu)/10,0.1), costsmu, yerr=costserr)
+    quickspine(ax)
+    ax.set_ylabel('objective cost')
+    ax.set_xlabel('time [s]')
+    ax.set_xlim(0,None)
+    ax.set_ylim(0,0.3)
+    ax.set_xlim(0,4)
+    quicksave('high cost adjustment cost')
+
+# no adjustment
+ntrial=3
+theta=torch.tensor([[1],   
+                        [pi/2],   
+                        [0.001],   
+                        [0.001],   
+                        [0.9],   
+                        [0.9],   
+                        [0.13],   
+                        [0.9],   
+                        [0.9],   
+                        [0.5],   
+                        [0.5]])
+states,actions, beliefs, covs=run_trials(agent=agent, env=env, phi=phi, theta=theta,task=thetask,ntrials=ntrial,pert=None,given_obs=None,return_belief=True)
+mintime=min([len(s) for s in states])+5
+states=[s[:mintime] for s in states]
+actions=[s[:mintime] for s in actions]
+# ax=quickoverhead_state(states, np.array([thetask]*2), color='r')
+# quicksave('no adjust adjustment overhead', fig=ax.get_figure()
+ax,_=plotctrlasd(actions)
+ax.set_xlim(0,4)
+quicksave('no adjustment control',fig=ax.get_figure())
+with initiate_plot(3,3, 300) as fig:
+    ax = fig.add_subplot(111)
+    ax.set_aspect('equal')
+    ax.axes.xaxis.set_ticks([]); ax.axes.yaxis.set_ticks([])
+    # ax.set_xlim([-235, 235]); ax.set_ylim([-2, 430])
+    xrange=np.cos(pi/180*(90-42.5))*600
+    x_temp = np.linspace(-xrange, xrange)
+    ax.plot(x_temp, np.sqrt(600**2 - x_temp**2), c='k', ls=':')
+    ax.text(-10, 625, s=r'$85\degree$', fontsize=fontsize)
+    ax.plot(np.linspace(-300, -200), np.linspace(-100, -100), c='k') # 100 is cm
+    ax.plot(np.linspace(-300, -300), np.linspace(-100, 0), c='k')
+    ax.text(-230, -200, s=r'$1 m$', fontsize=fontsize)
+    ax.scatter(0,0, marker='*', color='black', s=55) 
+
+    for s in beliefs:
+        ax.plot(s[:,1]*200, s[:,0]*200, color='black')
+    plot_circle(np.eye(2)*65,[thetask[1]*200,thetask[0]*200],ax=ax,edgecolor='k')
+    ax.axis('equal')
+    # quickleg(ax)
+    quickallspine(ax)
+    # quicksave('model no adjustment overhead')
+costs=[np.sum( (np.power(relu(np.diff(np.array(a), axis=0)),2)), axis=1) for a in actions]
+minlen=min([len(a) for a in costs])
+costsmu=[np.mean([a[t] for a in costs]) for t in range(minlen)]
+costserr=[np.std([a[t] for a in costs]) for t in range(minlen)]
+with initiate_plot(3,2,300) as fig:
+    ax=fig.add_subplot(111)
+    ax.errorbar(np.arange(0,len(costsmu)/10,0.1), costsmu, yerr=costserr)
+    quickspine(ax)
+    ax.set_ylabel('costs')
+    ax.set_xlabel('time [s]')
+    ax.set_xlim(0,None)
+    ax.set_ylim(0,0.3)
+    ax.set_xlim(0,4)
+    quicksave('no adjustment cost')
+
+
 
 
 # --------------------------------
@@ -1071,11 +1586,11 @@ costs=[np.sum( (np.power(relu(np.diff(np.array(a), axis=0)),2)), axis=1) for a i
 minlen=min([len(a) for a in costs])
 costsmu=[np.mean([a[t] for a in costs]) for t in range(minlen)]
 costserr=[np.std([a[t] for a in costs]) for t in range(minlen)]
-with initiate_plot(3,2,300) as fig:
+with initiate_plot(3,1,300) as fig:
     ax=fig.add_subplot(111)
     ax.errorbar(np.arange(0,len(costsmu)/10,0.1), costsmu, yerr=costserr)
     quickspine(ax)
-    ax.set_ylabel('costs')
+    ax.set_ylabel('objective cost')
     ax.set_xlabel('time [s]')
     ax.set_xlim(0,None)
     ax.set_ylim(0,0.3)
@@ -1135,11 +1650,11 @@ costs=[np.sum( (np.power(relu(np.diff(np.array(a), axis=0)),2)), axis=1) for a i
 minlen=min([len(a) for a in costs])
 costsmu=[np.mean([a[t] for a in costs]) for t in range(minlen)]
 costserr=[np.std([a[t] for a in costs]) for t in range(minlen)]
-with initiate_plot(3,2,300) as fig:
+with initiate_plot(3,1,300) as fig:
     ax=fig.add_subplot(111)
     ax.errorbar(np.arange(0,len(costsmu)/10,0.1), costsmu, yerr=costserr)
     quickspine(ax)
-    ax.set_ylabel('costs')
+    ax.set_ylabel('objective cost')
     ax.set_xlabel('time [s]')
     ax.set_xlim(0,None)
     ax.set_ylim(0,0.3)

@@ -12,16 +12,16 @@ class AE(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
         self.encoder_hidden_layer = nn.Linear(
-            in_features=kwargs["input_shape"], out_features=128
+            in_features=kwargs["input_shape"], out_features=16
         )
         self.encoder_output_layer = nn.Linear(
-            in_features=128, out_features=128
+            in_features=16, out_features=16
         )
         self.decoder_hidden_layer = nn.Linear(
-            in_features=128, out_features=128
+            in_features=16, out_features=16
         )
         self.decoder_output_layer = nn.Linear(
-            in_features=128, out_features=kwargs["input_shape"]
+            in_features=16, out_features=kwargs["input_shape"]
         )
 
     def forward(self, features):
@@ -291,10 +291,10 @@ for epoch in range(epochs):
 
             
 # save the model
-torch.save(model, "/workspaces/ae_trajectory.model")
+torch.save(model, "/workspaces/ae_trajectoryhid16_0410.model")
 
 
-model = torch.load("/workspaces/ae_trajectory.model")
+model = torch.load("/workspaces/ae_trajectoryhid16_0410.model")
 # model2 = AE(input_shape=X.shape[1]).to(device)
 # model2.load_state_dict(model.state_dict())
 # model2.encode(batch_features).shape
@@ -421,4 +421,10 @@ print('the other peak suggest asd behavior. still they are mixed')
 '''
 0226
 the autoencoder uses a kind of common template to fit all trajectories, instead of amplifying the difference in trajectories, check why
+'''
+
+'''
+0410
+change the hid dim from 128 to 16, because we dont need that many of features for trajectories.
+result: still wont achieve a good reconstruction. similar result as before.
 '''
