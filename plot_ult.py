@@ -78,6 +78,10 @@ from monkey_functions import *
 from matplotlib import font_manager
 from pathlib import Path
 import matplotlib.pyplot as plt
+
+if not os.getenv('workspace'):
+    os.environ["workspace"] = os.getcwd()
+
 font_dirs = [Path(os.getenv('workspace'))/'firefly_plots/fonts/computer-modern', ]
 font_files = font_manager.findSystemFonts(fontpaths=font_dirs)
 for font_file in font_files:
