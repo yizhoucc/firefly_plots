@@ -111,15 +111,15 @@ parttrainfolder='persub3of5dp'
 for invtag in ['h','a']:
     for isub in range(numhsub):
         thesub="{}sub{}".format(invtag,str(isub))
-        evalname=Path("/data/human/{}/evaltrain_inv{}sub{}".format(parttrainfolder,invtag,str(isub)))
-        fullinverseres=Path("/data/human/{}".format(fulltrainfolder))/"inv{}sub{}".format(invtag,str(isub))
-        partinverseres=Path("/data/human/{}".format(parttrainfolder))/"inv{}sub{}".format(invtag,str(isub))
+        evalname=Path(datapath/"human/{}/evaltrain_inv{}sub{}".format(parttrainfolder,invtag,str(isub)))
+        fullinverseres=Path(datapath/"human/{}".format(fulltrainfolder))/"inv{}sub{}".format(invtag,str(isub))
+        partinverseres=Path(datapath/"human/{}".format(parttrainfolder))/"inv{}sub{}".format(invtag,str(isub))
         # load inv res
         if fullinverseres.is_file():
             asd_data_set['res'+thesub]=process_inv(fullinverseres, usingbest=True, removegr=False)
         # load data
-        if Path('/data/human/{}'.format(thesub)).is_file():
-            with open('/data/human/{}'.format(thesub), 'rb') as f:
+        if Path(datapath/'human/{}'.format(thesub)).is_file():
+            with open(datapath/'human/{}'.format(thesub), 'rb') as f:
                 states, actions, tasks = pickle.load(f)
             print(len(states))
             asd_data_set['data'+thesub]=states, actions, tasks
@@ -386,7 +386,7 @@ for _ in range(40):
             'model_state_dict': model.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
             'loss_fn': criterion
-        }, '/data/res/{}_{}.pt'.format(modelname, note))
+        }, datapath/'res/{}_{}.pt'.format(modelname, note))
             
 def vis(true, pred, ind=None):
     if ind is None:
@@ -404,7 +404,7 @@ def vis(true, pred, ind=None):
 
 done=False
 if done:
-    pt=torch.load('/data/res/{}_{}.pt'.format(modelname, note))
+    pt=torch.load(datapath/'res/{}_{}.pt'.format(modelname, note))
     model=LSTMAE(input_size=2, hidden_size=64, num_layers=1, isCuda=False)
     model.load_state_dict(pt['model_state_dict'])
 
@@ -598,7 +598,7 @@ for epoch in range(1, n_epochs + 1):
 model.load_state_dict(best_model_wts)
 
 import pickle
-with open('/data/res/lstmae_64.mw','wb+') as f:
+with open(datapath/'res/lstmae_64.mw','wb+') as f:
     pickle.dump(best_model_wts,f)
 
 

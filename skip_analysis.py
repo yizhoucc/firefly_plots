@@ -32,10 +32,10 @@ agent=agent_.actor.mu.cpu()
 print('loading data')
 # with open("C:/Users/24455/Desktop/victor_normal_downsample",'rb') as f:
 #         df = pickle.load(f)
-with open("/data/victor_normal/packed",'rb') as f:
+with open(datapath/"victor_normal/packed",'rb') as f:
     df = pickle.load(f)
 
-theta, finalcov, cirange=process_inv('/data/victor_normal/preallpacked', removegr=False)
+theta, finalcov, cirange=process_inv(datapath/'victor_normal/preallpacked', removegr=False)
 
 # get tasks
 from monkey_functions import *

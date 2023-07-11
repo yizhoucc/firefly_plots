@@ -1,7 +1,7 @@
 
 # turn off obs data ------------------------------------
-for filename in Path('/data/human/turnoffdata').glob('inv*'):
-    dataname=Path('/data/human/turnoffdata')/filename.name[3:]
+for filename in Path(datapath/'human/turnoffdata').glob('inv*'):
+    dataname=Path(datapath/'human/turnoffdata')/filename.name[3:]
 
 with open(filename, 'rb') as f:
     theta,_,_=process_inv(filename,removegr=False)

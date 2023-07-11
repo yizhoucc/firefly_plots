@@ -29,16 +29,18 @@ import ray
 from pathlib import Path
 arg = Config()
 import os
-import requests
-import configparser
+
+
 from plot_ult import *
+
+import configparser
 config = configparser.ConfigParser()
 config.read_file(open('privateconfig'))
-token=config['Notification']['token']
+datafolder=config['Datafolder']['data']
+datapath=Path(datafolder)
 
-
+datapath=Path(datapath/"neuraltest/1208pack")
 print('loading data')
-datapath=Path("/data/neuraltest/1208pack")
 with open(datapath,'rb') as f:
     states, actions, tasks = pickle.load(f)
 
@@ -80,7 +82,7 @@ agent_=TD3.load('trained_agent/paper.zip')
 agent=agent_.actor.mu.cpu()
 
 
-invfile=Path('/data/neuraltest/inv_schroall_constrain_nopert_part2')
+invfile=Path(datapath/'neuraltest/inv_schroall_constrain_nopert_part2')
 finaltheta, finalcov, err=process_inv(invfile,removegr=False, usingbest=False)
 
 

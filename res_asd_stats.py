@@ -56,15 +56,15 @@ parttrainfolder='persub3of5dp'
 for invtag in ['h','a']:
     for isub in range(numhsub):
         thesub="{}sub{}".format(invtag,str(isub))
-        evalname=Path("/data/human/{}/evaltrain_inv{}sub{}".format(parttrainfolder,invtag,str(isub)))
-        fullinverseres=Path("/data/human/{}".format(fulltrainfolder))/"inv{}sub{}".format(invtag,str(isub))
-        partinverseres=Path("/data/human/{}".format(parttrainfolder))/"inv{}sub{}".format(invtag,str(isub))
+        evalname=Path(datapath/"human/{}/evaltrain_inv{}sub{}".format(parttrainfolder,invtag,str(isub)))
+        fullinverseres=Path(datapath/"human/{}".format(fulltrainfolder))/"inv{}sub{}".format(invtag,str(isub))
+        partinverseres=Path(datapath/"human/{}".format(parttrainfolder))/"inv{}sub{}".format(invtag,str(isub))
         # load inv res
         if fullinverseres.is_file():
             asd_data_set['res'+thesub]=process_inv(fullinverseres, usingbest=True, removegr=False)
         # load data
-        if Path('/data/human/{}'.format(thesub)).is_file():
-            with open('/data/human/{}'.format(thesub), 'rb') as f:
+        if Path(datapath/'human/{}'.format(thesub)).is_file():
+            with open(datapath/'human/{}'.format(thesub), 'rb') as f:
                 states, actions, tasks = pickle.load(f)
             print(len(states))
             asd_data_set['data'+thesub]=states, actions, tasks

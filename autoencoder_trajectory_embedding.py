@@ -7,6 +7,11 @@ from torch.utils.data import DataLoader
 from plot_ult import *
 import copy
 
+import configparser
+config = configparser.ConfigParser()
+config.read_file(open('privateconfig'))
+datafolder=config['Datafolder']['data']
+datapath=Path(datafolder)
 
 class AE(nn.Module):
     def __init__(self, **kwargs):
@@ -134,15 +139,15 @@ if __name__ == '__main__':
     for invtag in ['h','a']:
         for isub in range(numhsub):
             thesub="{}sub{}".format(invtag,str(isub))
-            evalname=Path("/data/human/{}/evaltrain_inv{}sub{}".format(parttrainfolder,invtag,str(isub)))
-            fullinverseres=Path("/data/human/{}".format(fulltrainfolder))/"inv{}sub{}".format(invtag,str(isub))
-            partinverseres=Path("/data/human/{}".format(parttrainfolder))/"inv{}sub{}".format(invtag,str(isub))
+            evalname=Path(datapath/"human/{}/evaltrain_inv{}sub{}".format(parttrainfolder,invtag,str(isub)))
+            fullinverseres=Path(datapath/"human/{}".format(fulltrainfolder))/"inv{}sub{}".format(invtag,str(isub))
+            partinverseres=Path(datapath/"human/{}".format(parttrainfolder))/"inv{}sub{}".format(invtag,str(isub))
             # load inv res
             if fullinverseres.is_file():
                 asd_data_set['res'+thesub]=process_inv(fullinverseres, usingbest=True, removegr=False)
             # load data
-            if Path('/data/human/{}'.format(thesub)).is_file():
-                with open('/data/human/{}'.format(thesub), 'rb') as f:
+            if Path(datapath/'human/{}'.format(thesub)).is_file():
+                with open(datapath/'human/{}'.format(thesub), 'rb') as f:
                     states, actions, tasks = pickle.load(f)
                 print(len(states))
                 asd_data_set['data'+thesub]=states, actions, tasks

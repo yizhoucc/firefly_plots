@@ -5,7 +5,6 @@ from plot_ult import *
 from scipy import stats 
 from sklearn import svm
 import matplotlib
-from playsound import playsound
 import matplotlib.pyplot as plt
 from sklearn import svm
 import numpy as np
@@ -49,11 +48,11 @@ agent=agent_.actor.mu.cpu()
 
 # behavioral small gain prior, and we confirmed it ------------------------
 # load human without feedback data
-datapath=Path("/data/human/wohgroup")
+datapath=Path(datapath/"human/wohgroup")
 with open(datapath, 'rb') as f:
     hstates, hactions, htasks = pickle.load(f)
 
-datapath=Path("/data/human/woagroup")
+datapath=Path(datapath/"human/woagroup")
 with open(datapath, 'rb') as f:
     astates, aactions, atasks = pickle.load(f)
 # get the side tasks (stright trials do not have curvature)
@@ -116,24 +115,24 @@ with initiate_plot(4,2,300) as f:
 
 
 # per subject behavior ------------------------
-datapath=Path("/data/human/hgroup")
+datapath=Path(datapath/"human/hgroup")
 with open(datapath, 'rb') as f:
     hstates, hactions, htasks = pickle.load(f)
 
-datapath=Path("/data/human/agroup")
+datapath=Path(datapath/"human/agroup")
 with open(datapath, 'rb') as f:
     astates, aactions, atasks = pickle.load(f)
 
-datapath=Path("/data/human/wohgroup")
+datapath=Path(datapath/"human/wohgroup")
 with open(datapath, 'rb') as f:
     wohstates, wohactions, wohtasks = pickle.load(f)
 
-datapath=Path("/data/human/woagroup")
+datapath=Path(datapath/"human/woagroup")
 with open(datapath, 'rb') as f:
     woastates, woaactions, woatasks = pickle.load(f)
 
 
-filename='/data/human/fbsimple.mat'
+filename=datapath/'human/fbsimple.mat'
 data=loadmat(filename)
 
 # seperate into two groups
@@ -154,17 +153,17 @@ acumsum=np.cumsum(asublen)
 # load inv data
 numhsub,numasub=25,14
 foldername='persub1cont'
-logs={'a':'/data/human/fixragroup','h':'/data/human/clusterpaperhgroup'}
+logs={'a':datapath/'human/fixragroup','h':datapath/'human/clusterpaperhgroup'}
 
 invres={'a':[],'h':[]}
 for isub in range(numhsub):
     dataname="hsub{}".format(str(isub))
-    savename=Path("/data/human/{}".format(foldername))/"invhsub{}".format(str(isub))
+    savename=Path(datapath/"human/{}".format(foldername))/"invhsub{}".format(str(isub))
     if savename.is_file():
         invres['h'].append(process_inv(savename,ind=31, usingbest=True))
 for isub in range(numasub):
     dataname="asub{}".format(str(isub))
-    savename=Path("/data/human/{}".format(foldername))/"invasub{}".format(str(isub))
+    savename=Path(datapath/"human/{}".format(foldername))/"invasub{}".format(str(isub))
     if savename.is_file():
         invres['a'].append(process_inv(savename,ind=31, usingbest=True))
 
@@ -575,7 +574,7 @@ agent_=TD3.load('trained_agent/paper.zip')
 agent=agent_.actor.mu.cpu()
 
 # define the midpoint between ASD and healthy 
-logls=['/data/human/fixragroup','/data/human/clusterpaperhgroup']
+logls=[datapath/'human/fixragroup',datapath/'human/clusterpaperhgroup']
 monkeynames=['ASD', 'Ctrl' ]
 
 mus,covs,errs=[],[],[]
@@ -669,7 +668,7 @@ vary_theta_new(agent, env, phi, theta_init, theta_final,5,etask=[1,1], ntrials=2
 
 
 # the delta logll -------------------------------
-with open('/data/human/distinguishparamZtwonoisessmaller2finer19', 'rb') as f:
+with open(datapath/'human/distinguishparamZtwonoisessmaller2finer19', 'rb') as f:
     paramls,Z= pickle.load(f)
 formatedZ=np.array(Z).reshape(int(len(Z)**0.5),int(len(Z)**0.5)).T
 truedelta=mus[1]-mus[0]
@@ -710,15 +709,15 @@ parttrainfolder='persub3of5dp'
 for invtag in ['h','a']:
     for isub in range(numhsub):
         thesub="{}sub{}".format(invtag,str(isub))
-        evalname=Path("/data/human/{}/evaltrain_inv{}sub{}".format(parttrainfolder,invtag,str(isub)))
-        fullinverseres=Path("/data/human/{}".format(fulltrainfolder))/"inv{}sub{}".format(invtag,str(isub))
-        partinverseres=Path("/data/human/{}".format(parttrainfolder))/"inv{}sub{}".format(invtag,str(isub))
+        evalname=Path(datapath/"human/{}/evaltrain_inv{}sub{}".format(parttrainfolder,invtag,str(isub)))
+        fullinverseres=Path(datapath/"human/{}".format(fulltrainfolder))/"inv{}sub{}".format(invtag,str(isub))
+        partinverseres=Path(datapath/"human/{}".format(parttrainfolder))/"inv{}sub{}".format(invtag,str(isub))
         # load inv res
         if fullinverseres.is_file():
             asd_data_set['res'+thesub]=process_inv(fullinverseres, usingbest=True, removegr=True)
         # load data
-        if Path('/data/human/{}'.format(thesub)).is_file():
-            with open('/data/human/{}'.format(thesub), 'rb') as f:
+        if Path(datapath/'human/{}'.format(thesub)).is_file():
+            with open(datapath/'human/{}'.format(thesub), 'rb') as f:
                 states, actions, tasks = pickle.load(f)
             print(len(states))
             asd_data_set['data'+thesub]=states, actions, tasks
@@ -730,7 +729,7 @@ for invtag in ['h','a']:
         if 'res'+thesub in asd_data_set:
             theta,cov,err=asd_data_set['res'+thesub]
 
-            ev, evector=torch.eig(torch.tensor(cov),eigenvectors=True)
+            ev, evector=torch.linalg.eig(torch.tensor(cov),eigenvectors=True)
             ev=ev[:,0]
             ev,esortinds=ev.sort(descending=False)
             evector=evector[:,esortinds]
@@ -824,17 +823,17 @@ with initiate_plot(1,1,300) as fig:
 # load inv data
 numhsub,numasub=25,14
 foldername='persub1cont'
-logs={'a':'/data/human/fixragroup','h':'/data/human/clusterpaperhgroup'}
+logs={'a':datapath/'human/fixragroup','h':datapath/'human/clusterpaperhgroup'}
 
 invres={'a':[],'h':[]}
 for isub in range(numhsub):
     dataname="hsub{}".format(str(isub))
-    savename=Path("/data/human/{}".format(foldername))/"invhsub{}".format(str(isub))
+    savename=Path(datapath/"human/{}".format(foldername))/"invhsub{}".format(str(isub))
     if savename.is_file():
         invres['h'].append(process_inv(savename,ind=31, usingbest=True))
 for isub in range(numasub):
     dataname="asub{}".format(str(isub))
-    savename=Path("/data/human/{}".format(foldername))/"invasub{}".format(str(isub))
+    savename=Path(datapath/"human/{}".format(foldername))/"invasub{}".format(str(isub))
     if savename.is_file():
         invres['a'].append(process_inv(savename,ind=31, usingbest=True))
 
@@ -900,12 +899,12 @@ scipy.special.kl_div(ticks[Y==0][:2019],ticks[Y==1])
 invres={'a':[],'h':[]}
 for isub in range(numhsub):
     dataname="hsub{}".format(str(isub))
-    savename=Path("/data/human/{}".format(foldername))/"invhsub{}".format(str(isub))
+    savename=Path(datapath/"human/{}".format(foldername))/"invhsub{}".format(str(isub))
     if savename.is_file():
         invres['h'].append(process_inv(savename,ind=31, usingbest=True))
 for isub in range(numasub):
     dataname="asub{}".format(str(isub))
-    savename=Path("/data/human/{}".format(foldername))/"invasub{}".format(str(isub))
+    savename=Path(datapath/"human/{}".format(foldername))/"invasub{}".format(str(isub))
     if savename.is_file():
         invres['a'].append(process_inv(savename,ind=31, usingbest=True))
 
@@ -972,17 +971,17 @@ scipy.special.kl_div(ticks[Y==0][:2019],ticks[Y==1])
 # load inv data
 numhsub,numasub=25,14
 foldername='persub1cont'
-logs={'a':'/data/human/fixragroup','h':'/data/human/clusterpaperhgroup'}
+logs={'a':datapath/'human/fixragroup','h':datapath/'human/clusterpaperhgroup'}
 
 invres={'a':[],'h':[]}
 for isub in range(numhsub):
     dataname="hsub{}".format(str(isub))
-    savename=Path("/data/human/{}".format(foldername))/"invhsub{}".format(str(isub))
+    savename=Path(datapath/"human/{}".format(foldername))/"invhsub{}".format(str(isub))
     if savename.is_file():
         invres['h'].append(process_inv(savename,ind=31, usingbest=True))
 for isub in range(numasub):
     dataname="asub{}".format(str(isub))
-    savename=Path("/data/human/{}".format(foldername))/"invasub{}".format(str(isub))
+    savename=Path(datapath/"human/{}".format(foldername))/"invasub{}".format(str(isub))
     if savename.is_file():
         invres['a'].append(process_inv(savename,ind=31, usingbest=True))
 

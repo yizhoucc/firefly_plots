@@ -6,7 +6,6 @@ import numpy as np
 from plot_ult import * 
 from scipy import stats 
 import matplotlib
-from playsound import playsound
 import matplotlib.pyplot as plt
 
 import numpy as np

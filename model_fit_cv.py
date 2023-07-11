@@ -1,20 +1,29 @@
 # added 9/12, short long cross validation --------------------
 # load theta infered for short trials
+from stable_baselines3 import TD3
+from pathlib import Path
+from plot_ult import *
+
+import configparser
+config = configparser.ConfigParser()
+config.read_file(open('privateconfig'))
+datafolder=config['Datafolder']['data']
+datapath=Path(datafolder)
 
 numhsub,numasub=25,14
-logs={'a':'/data/human/fixragroup','h':'/data/human/clusterpaperhgroup'}
+logs={'a':datapath/'human/fixragroup','h':datapath/'human/clusterpaperhgroup'}
 
 # full inverse
 foldername='persub1cont'
 invres={'a':[],'h':[]}
 for isub in range(numhsub):
     dataname="hsub{}".format(str(isub))
-    savename=Path("/data/human/{}".format(foldername))/"invhsub{}".format(str(isub))
+    savename=Path(datapath/"human/{}".format(foldername))/"invhsub{}".format(str(isub))
     if savename.is_file():
         invres['h'].append(process_inv(savename,ind=31, usingbest=True))
 for isub in range(numasub):
     dataname="asub{}".format(str(isub))
-    savename=Path("/data/human/{}".format(foldername))/"invasub{}".format(str(isub))
+    savename=Path(datapath/"human/{}".format(foldername))/"invasub{}".format(str(isub))
     if savename.is_file():
         invres['a'].append(process_inv(savename,ind=31, usingbest=True))
 
@@ -24,24 +33,25 @@ invres['ashort']=[]
 invres['hshort']=[]
 for isub in range(numhsub):
     dataname="hsub{}".format(str(isub))
-    savename=Path("/data/human/{}".format(foldername))/"invhsub{}".format(str(isub))
+    savename=Path(datapath/"human/{}".format(foldername))/"invhsub{}".format(str(isub))
     if savename.is_file():
         invres['hshort'].append(process_inv(savename,ind=31, usingbest=True))
 for isub in range(numasub):
     dataname="asub{}".format(str(isub))
-    savename=Path("/data/human/{}".format(foldername))/"invasub{}".format(str(isub))
+    savename=Path(datapath/"human/{}".format(foldername))/"invasub{}".format(str(isub))
     if savename.is_file():
         invres['ashort'].append(process_inv(savename,ind=31, usingbest=True))
 
 fullinvh=[log[0] for log in invres['h']]
 shortinvh=[log[0] for log in invres['hshort']]
 
-plt.plot([theta[0] for theta in fullinvh])
-plt.plot([theta[0] for theta in shortinvh])
+plt.plot([theta[0] for theta in fullinvh], label='full')
+plt.plot([theta[0] for theta in shortinvh], label='partial')
+plt.xlabel('subject')
+plt.ylabel('linear gain')
 
 
 # overhead of example trial -----------------------------------------------------------\
-
 env=ffacc_real.FireFlyPaper(arg)
 env.debug=True
 env.terminal_vel=0.1
@@ -57,9 +67,9 @@ parttrainfolder='persub3of5dp'
 for invtag in ['h','a']:
     for isub in range(numhsub):
         thesub="{}sub{}".format(invtag,str(isub))
-        evalname=Path("/data/human/{}/evaltrain_inv{}sub{}".format(parttrainfolder,invtag,str(isub)))
-        fullinverseres=Path("/data/human/{}".format(fulltrainfolder))/"inv{}sub{}".format(invtag,str(isub))
-        partinverseres=Path("/data/human/{}".format(parttrainfolder))/"inv{}sub{}".format(invtag,str(isub))
+        evalname=Path(datapath/"human/{}/evaltrain_inv{}sub{}".format(parttrainfolder,invtag,str(isub)))
+        fullinverseres=Path(datapath/"human/{}".format(fulltrainfolder))/"inv{}sub{}".format(invtag,str(isub))
+        partinverseres=Path(datapath/"human/{}".format(parttrainfolder))/"inv{}sub{}".format(invtag,str(isub))
         # load inv res
         if partinverseres.is_file():
             asd_data_set['partres'+thesub]=process_inv(partinverseres, usingbest=True, removegr=False)
@@ -67,8 +77,8 @@ for invtag in ['h','a']:
             asd_data_set['res'+thesub]=process_inv(fullinverseres, usingbest=True, removegr=False)
         
         # load data
-        if Path('/data/human/{}'.format(thesub)).is_file():
-            with open('/data/human/{}'.format(thesub), 'rb') as f:
+        if Path(datapath/'human/{}'.format(thesub)).is_file():
+            with open(datapath/'human/{}'.format(thesub), 'rb') as f:
                 states, actions, tasks = pickle.load(f)
             print(len(states))
             asd_data_set['data'+thesub]=states, actions, tasks
@@ -141,10 +151,6 @@ fig=plotctrl_vs(subactions, modelactions, color1='b', color2='r', label1=thesub,
 
 # compare validation logll and test logll -----------------------------------------------
 # load data 
-from pathlib import Path
-from plot_ult import *
-
-
 numhsub,numasub=25,14
 fulltrainfolder='persub1cont'
 parttrainfolder='persub3of5dp'
@@ -156,9 +162,9 @@ for invtag in ['h','a']:
     for isub in range(25):
         thesub="{}sub{}".format(invtag,str(isub))
         subnames.append(thesub)
-        evalname=Path("/data/human/{}/evaltrain_inv{}sub{}".format(parttrainfolder,invtag,str(isub)))
-        fullinverseres=Path("/data/human/{}".format(fulltrainfolder))/"inv{}sub{}".format(invtag,str(isub))
-        partinverseres=Path("/data/human/{}".format(parttrainfolder))/"inv{}sub{}".format(invtag,str(isub))
+        evalname=Path(datapath/"human/{}/evaltrain_inv{}sub{}".format(parttrainfolder,invtag,str(isub)))
+        fullinverseres=Path(datapath/"human/{}".format(fulltrainfolder))/"inv{}sub{}".format(invtag,str(isub))
+        partinverseres=Path(datapath/"human/{}".format(parttrainfolder))/"inv{}sub{}".format(invtag,str(isub))
         # load test logll
         if evalname.is_file():
             with open(evalname, 'rb') as f:
@@ -264,9 +270,9 @@ parttrainfolder='persub3of5dp'
 for invtag in ['h','a']:
     for isub in range(numhsub):
         thesub="{}sub{}".format(invtag,str(isub))
-        evalname=Path("/data/human/{}/evaltrain_inv{}sub{}".format(parttrainfolder,invtag,str(isub)))
-        fullinverseres=Path("/data/human/{}".format(fulltrainfolder))/"inv{}sub{}".format(invtag,str(isub))
-        partinverseres=Path("/data/human/{}".format(parttrainfolder))/"inv{}sub{}".format(invtag,str(isub))
+        evalname=Path(datapath/"human/{}/evaltrain_inv{}sub{}".format(parttrainfolder,invtag,str(isub)))
+        fullinverseres=Path(datapath/"human/{}".format(fulltrainfolder))/"inv{}sub{}".format(invtag,str(isub))
+        partinverseres=Path(datapath/"human/{}".format(parttrainfolder))/"inv{}sub{}".format(invtag,str(isub))
         # load inv res
         if partinverseres.is_file():
             asd_data_set['partres'+thesub]=process_inv(partinverseres, usingbest=True, removegr=False)
@@ -274,8 +280,8 @@ for invtag in ['h','a']:
             asd_data_set['res'+thesub]=process_inv(fullinverseres, usingbest=True, removegr=False)
         
         # load data
-        if Path('/data/human/{}'.format(thesub)).is_file():
-            with open('/data/human/{}'.format(thesub), 'rb') as f:
+        if Path(datapath/'human/{}'.format(thesub)).is_file():
+            with open(datapath/'human/{}'.format(thesub), 'rb') as f:
                 states, actions, tasks = pickle.load(f)
             print(len(states))
             asd_data_set['data'+thesub]=states, actions, tasks
@@ -337,11 +343,10 @@ phi=torch.tensor([[1],
 agent_=TD3.load('trained_agent/paper.zip')
 agent=agent_.actor.mu.cpu()
 
-datapath=Path("/data/human/agroup")
-with open(datapath, 'rb') as f:
+with open(datapath/"human/agroup", 'rb') as f:
     astate,_, tasks = pickle.load(f)
 
-logls=['/data/human/fixragroup','/data/human/clusterpaperhgroup']
+logls=[datapath/'human/fixragroup',datapath/'human/clusterpaperhgroup']
 monkeynames=['ASD', 'Ctrl' ]
 
 mus,covs,errs=[],[],[]
@@ -356,7 +361,7 @@ thetas=torch.tensor(mus)
 theta_asd=thetas[0]
 theta_nt=thetas[1]
 
-response_asd,_=run_trials_multitask(agent, env, phi, theta_asd, tasks,ntrials=1, stimdur=None)
+response_asd,_=run_trials_multitask(agent, env, phi, theta_asd, tasks, ntrials=1, stimdur=None)
 response_nt,_=run_trials_multitask(agent, env, phi, theta_nt, tasks,ntrials=1, stimdur=None)
 
 asd_data_endpoint={}
@@ -427,7 +432,6 @@ import numpy as np
 from plot_ult import * 
 from scipy import stats 
 import matplotlib
-from playsound import playsound
 import matplotlib.pyplot as plt
 import numpy as np
 import os

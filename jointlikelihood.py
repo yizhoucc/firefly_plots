@@ -11,7 +11,6 @@ final result is a heat map
 ''')
 
 import matplotlib
-from playsound import playsound
 import matplotlib.pyplot as plt
 from sklearn import svm
 import numpy as np
@@ -46,6 +45,13 @@ from timeit import default_timer as timer
 from plot_ult import *
 from scipy.ndimage.filters import gaussian_filter
 
+import configparser
+config = configparser.ConfigParser()
+config.read_file(open('privateconfig'))
+datafolder=config['Datafolder']['data']
+datapath=Path(datafolder)
+
+
 # load agent and task 
 env=ffacc_real.FireFlyPaper(arg)
 env.episode_len=50
@@ -68,7 +74,7 @@ agent=agent_.actor.mu.cpu()
 
 
 # define the midpoint between ASD and healthy 
-logls=['/data/human/fixragroup','/data/human/clusterpaperhgroup']
+logls=[datapath/'human/fixragroup',datapath/'human/clusterpaperhgroup']
 monkeynames=['ASD', 'Ctrl' ]
 
 mus,covs,errs=[],[],[]
@@ -125,10 +131,10 @@ theta_init,theta_final=torch.tensor(theta_init).view(-1,1).float(),torch.tensor(
 gridreso=11
 num_sample=200
 # load the data
-datapath=Path("/data/human/hgroup")
+datapath=datapath/("human/hgroup")
 with open(datapath, 'rb') as f:
     hstates, hactions, htasks = pickle.load(f)
-datapath=Path("/data/human/agroup")
+datapath=Path(datapath/"human/agroup")
 with open(datapath, 'rb') as f:
     astates, aactions, atasks = pickle.load(f)
 # select the side tasks
@@ -197,7 +203,7 @@ for i in range(gridreso):
 #         pickle.dump((paramls,Z), f, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-with open('/data/human/jointlikelihood/distinguishparamZnoisecost3finer19', 'rb') as f:
+with open(datapath/'human/jointlikelihood/distinguishparamZnoisecost3finer19', 'rb') as f:
     paramls,Z= pickle.load(f)
 formatedZ=np.array(Z).reshape(int(len(Z)**0.5),int(len(Z)**0.5)).T
 truedelta=mus[1]-mus[0]
@@ -284,7 +290,7 @@ for i in range(gridreso):
 
 
 # # vary obs, while keep uncertainty and kalman gain the same.
-# with open('/data/human/distinguishparamZobspre', 'rb') as f:
+# with open(datapath/'human/distinguishparamZobspre', 'rb') as f:
 #     paramls,Z= pickle.load(f)
 # formatedZ=np.array(Z).reshape(int(len(Z)**0.5),int(len(Z)**0.5)).T
 # truedelta=mus[1]-mus[0]
@@ -351,7 +357,7 @@ for i in range(gridreso):
 #         pickle.dump((paramls,Z), f, protocol=pickle.HIGHEST_PROTOCOL)
 
 # vary obs and process noise, while keep bias the same (so we vary gains), result in vary uncertainties, smaller range
-with open('/data/human/jointlikelihood/2noise2', 'rb') as f:
+with open(datapath/'human/jointlikelihood/2noise2', 'rb') as f:
     paramls,Z= pickle.load(f)
 formatedZ=np.array(Z).reshape(int(len(Z)**0.5),int(len(Z)**0.5)).T
 truedelta=mus[1]-mus[0]
@@ -466,7 +472,7 @@ for i in range(gridreso):
 #         pickle.dump((paramls,Z), f, protocol=pickle.HIGHEST_PROTOCOL)
 
 # vary gain and noise (vary bias vs uncertainty)
-with open('/data/human/jointlikelihood/distinguishparamZgainonoisefiner19', 'rb') as f:
+with open(datapath/'human/jointlikelihood/distinguishparamZgainonoisefiner19', 'rb') as f:
     paramls,Z= pickle.load(f)
 formatedZ=np.array(Z).reshape(int(len(Z)**0.5),int(len(Z)**0.5)).T
 truedelta=mus[1]-mus[0]
@@ -491,7 +497,7 @@ with initiate_plot(3,3,300) as f:
     quickspine(ax)
 
 
-with open('/data/human/jointlikelihood/noisegain', 'rb') as f:
+with open(datapath/'human/jointlikelihood/noisegain', 'rb') as f:
     paramls,Z= pickle.load(f)
 Z=np.array(Z).reshape(int(len(Z)**0.5),int(len(Z)**0.5))
 truedelta=mus[1]-mus[0]
@@ -749,7 +755,7 @@ states, actions, tasks=monkey_data_downsampled(df[:100],factor=0.0025)
 
 # from cov, find the eig axis we are most sure about
 theta,cov,err=process_inv("Z:/bruno_pert/cmafull_packed_bruno_pert", removegr=False)
-ev, evector=torch.eig(torch.tensor(cov),eigenvectors=True)
+ev, evector=torch.linalg.eig(torch.tensor(cov),eigenvectors=True)
 ev=ev[:,0]
 ev,esortinds=ev.sort(descending=False)
 evector=evector[:,esortinds]

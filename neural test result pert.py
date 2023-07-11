@@ -29,16 +29,15 @@ import ray
 from pathlib import Path
 arg = Config()
 import os
-import requests
-import configparser
 from plot_ult import *
+
+import configparser
 config = configparser.ConfigParser()
 config.read_file(open('privateconfig'))
-token=config['Notification']['token']
-
+datafolder=config['Datafolder']['data']
 
 print('loading data')
-datapath=Path("/data/victor_pert/packed")
+datapath=Path(datafolder)/"victor_pert/packed"
 with open(datapath,'rb') as f:
     df_ = pickle.load(f)
 
@@ -90,7 +89,7 @@ agent_=TD3.load('trained_agent/paper.zip')
 agent=agent_.actor.mu.cpu()
 
 
-invfile=Path('/data/victor_pert/newinvvictor_pert_ds')
+invfile=Path(datapath/'victor_pert/newinvvictor_pert_ds')
 finaltheta_, finalcov_, err=process_inv(invfile,removegr=False, usingbest=False)
 finaltheta=finaltheta_[:-1] # remove the time cost
 finalcov=finalcov_[:-1,:-1]

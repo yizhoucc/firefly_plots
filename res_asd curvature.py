@@ -19,11 +19,11 @@ import scipy.stats as stats
 
 
 # load data ------------------------------------------------
-datapath=Path("/data/human/hgroup")
+datapath=Path(datapath/"human/hgroup")
 with open(datapath, 'rb') as f:
     hstates, hactions, htasks = pickle.load(f)
 
-datapath=Path("/data/human/agroup")
+datapath=Path(datapath/"human/agroup")
 with open(datapath, 'rb') as f:
     astates, aactions, atasks = pickle.load(f)
 # get the side tasks (stright trials do not have curvature)

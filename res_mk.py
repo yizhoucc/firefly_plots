@@ -41,12 +41,12 @@ logls=[
     datafolder/('marco_pert/des1sub200packed'),
 ]
 # logls=[
-#     Path('/data/bruno_pert/cmafull_b_pert'),
-#     Path('/data/schro_pert/cmafull_packed_schro_pert'),
-#     Path('/data/q_pert/cma180paper_packed'),
-#     Path('/data/victor_pert/cmafull_victor_pert_ds'),
-#     Path('/data/jimmy_pert/des1sub200packed'),
-#     Path('/data/marco_pert/des1sub200packed'),
+#     Path(datapath/'bruno_pert/cmafull_b_pert'),
+#     Path(datapath/'schro_pert/cmafull_packed_schro_pert'),
+#     Path(datapath/'q_pert/cma180paper_packed'),
+#     Path(datapath/'victor_pert/cmafull_victor_pert_ds'),
+#     Path(datapath/'jimmy_pert/des1sub200packed'),
+#     Path(datapath/'marco_pert/des1sub200packed'),
 # ]
 monkeynames=['bruno', 'schro', 'quigley','victor','jimmy','maraco']
 
@@ -92,14 +92,14 @@ with initiate_plot(7,2,300) as fig:
 
 # % example inferred belief in one trial ---------------------
 # load the inferred theta
-theta,_,_=process_inv("/data/bruno_pert/cmafull_b_pert", removegr=False)
+theta,_,_=process_inv(datapath/"bruno_pert/cmafull_b_pert", removegr=False)
 env=ffacc_real.FireFlyPaper(arg)
 agent_=TD3.load('trained_agent/paper.zip')
 agent=agent_.actor.mu.cpu()
 critic=agent_.critic.qf0.cpu()
 
 # load the behavior data
-filenamecommom=Path('/data/bruno_pert')
+filenamecommom=Path(datapath/'bruno_pert')
 with open(filenamecommom/'packed', 'rb') as f:
     df = pickle.load(f)
     df=datawash(df)
@@ -177,7 +177,7 @@ monkeys=['bruno', 'schro','victor','quigley']
 
 mk2beh={}
 for m in monkeys:
-    datapath=Path("/data/{}_normal/packed".format(m))
+    datapath=Path(datapath/"{}_normal/packed".format(m))
     with open(datapath,'rb') as f:
         df = pickle.load(f)
     df=datawash(df)
@@ -250,7 +250,7 @@ with initiate_plot(3,3) as fig:
 # % victor respond differently to pert ---------------------
 # load victor pert data and control pert data
 data={}
-filenamecommom=Path('/data/victor_pert')
+filenamecommom=Path(datapath/'victor_pert')
 with open(filenamecommom/'packed', 'rb') as f:
     df = pickle.load(f)
     df=datawash(df)
@@ -260,7 +260,7 @@ data['vdf']=df
 data['vpert']=monkey_data_downsampled(df,factor=0.0025)
 data['vpertmisc']=df_downsamplepert(df,factor=0.0025)
 
-filenamecommom=Path('/data/bruno_pert')
+filenamecommom=Path(datapath/'bruno_pert')
 with open(filenamecommom/'packed', 'rb') as f:
     df = pickle.load(f)
     df=datawash(df)
@@ -270,7 +270,7 @@ data['bdf']=df
 data['bpert']=monkey_data_downsampled(df,factor=0.0025)
 data['bpertmisc']=df_downsamplepert(df,factor=0.0025)
 
-filenamecommom=Path('/data/jimmy_pert')
+filenamecommom=Path(datapath/'jimmy_pert')
 with open(filenamecommom/'packed', 'rb') as f:
     df = pickle.load(f)
     df=datawash(df)
@@ -280,7 +280,7 @@ data['jdf']=df
 data['jpert']=monkey_data_downsampled(df,factor=0.0025)
 data['jpertmisc']=df_downsamplepert(df,factor=0.0025)
 
-filenamecommom=Path('/data/marco_pert')
+filenamecommom=Path(datapath/'marco_pert')
 with open(filenamecommom/'packed', 'rb') as f:
     df = pickle.load(f)
     df=datawash(df)
@@ -454,7 +454,7 @@ ax.get_figure()
 
 # check other two monkey, if doing good pert
 # marco seems good by overhead path
-filenamecommom=Path('/data/marco_pert')
+filenamecommom=Path(datapath/'marco_pert')
 with open(filenamecommom/'packed', 'rb') as f:
     df = pickle.load(f)
     df=datawash(df)
@@ -566,7 +566,7 @@ quicksave('allmkpert overhead ind={}'.format(ind),fig=ax.get_figure())
 # % value map from critic ---------------------
 
 # load the inferred theta
-theta,_,_=process_inv("/data/bruno_pert/cmafull_b_pert", removegr=False)
+theta,_,_=process_inv(datapath/"bruno_pert/cmafull_b_pert", removegr=False)
 
 # load the agent and env
 env=ffacc_real.FireFlyPaper(arg)
@@ -608,7 +608,7 @@ plt.ylim(0.,1)
 # % value map from actor ---------------------
 
 # load the inferred theta
-theta,_,_=process_inv("/data/bruno_pert/cmafull_b_pert", removegr=False)
+theta,_,_=process_inv(datapath/"bruno_pert/cmafull_b_pert", removegr=False)
 
 # load the agent and env
 env=ffacc_real.FireFlyPaper(arg)
@@ -671,7 +671,7 @@ with open('valuemap33', 'rb') as f:
 # % histogram of skips number vs value ----------------------
 
 # # get monkey data (bruno) random skip
-# filenamecommom=Path('/data/bruno_normal')
+# filenamecommom=Path(datapath/'bruno_normal')
 # with open(filenamecommom/'packed', 'rb') as f:
 #     df = pickle.load(f)
 # data['bnormdf']=df
@@ -679,7 +679,7 @@ with open('valuemap33', 'rb') as f:
 # normaldf=data['bnormdf'][data['bnormdf'].category=='normal'] 
 
 # get monkey data (victor)
-filenamecommom=Path('/data/victor_normal')
+filenamecommom=Path(datapath/'victor_normal')
 with open(filenamecommom/'packed', 'rb') as f:
     df = pickle.load(f)
 data['vnormdf']=df
@@ -783,7 +783,7 @@ with initiate_plot(2,2,300) as f:
 
 
 # % model the history skip effect, by logistic regression ---------------------
-filenamecommom=Path('/data/victor_normal')
+filenamecommom=Path(datapath/'victor_normal')
 with open(filenamecommom/'packed', 'rb') as f:
     df = pickle.load(f)
 # o1 label the trial type list
@@ -1187,8 +1187,8 @@ test if this is true
 by varying the two parameters
 '''
 # load the data
-theta,_,_=process_inv("/data/bruno_pert/cmafull_b_pert", removegr=False)
-with open('/data/victor_pert/packed','rb') as f:
+theta,_,_=process_inv(datapath/"bruno_pert/cmafull_b_pert", removegr=False)
+with open(datapath/'victor_pert/packed','rb') as f:
     df = pickle.load(f)
 df=datawash(df)
 df=df[df.category=='normal']
@@ -1224,7 +1224,7 @@ with open('distinguishparamZnoisecost3finer19', 'wb+') as f:
 
 # smr data
 
-sessions=Path("/data/mkdata/q_normal/01-29-2018")
+sessions=Path(datapath/"mkdata/q_normal/01-29-2018")
 
 ext=MonkeyDataExtractor(folder_path=sessions)
 ext.monkey_class='BCM'

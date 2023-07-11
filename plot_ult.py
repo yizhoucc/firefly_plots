@@ -196,6 +196,12 @@ phi=torch.tensor([[0.5],
         [0.001],
 ])
 
+import configparser
+config = configparser.ConfigParser()
+config.read_file(open('privateconfig'))
+datafolder=config['Datafolder']['data']
+datapath=Path(datafolder)
+
 
 def hex2rgb(hexstr):
     if hexstr[0] =='#':
@@ -3748,9 +3754,9 @@ def initiate_plot(dimx=24, dimy=9, dpi=100, fontweight='normal'):
     
 def quicksave(name,fig=None):
     if not fig:
-        plt.savefig('/data/figures/{}.svg'.format(name), dpi='figure', format='svg',bbox_inches="tight")
+        plt.savefig(datapath/'figures/{}.svg'.format(name), dpi='figure', format='svg',bbox_inches="tight")
     else:
-        fig.savefig('/data/figures/{}.svg'.format(name), dpi='figure', format='svg',bbox_inches="tight")
+        fig.savefig(datapath/'figures/{}.svg'.format(name), dpi='figure', format='svg',bbox_inches="tight")
 
 
 def set_violin_plot(bp, facecolor, edgecolor, linewidth=1, alpha=1, ls='-', hatch=r''):
@@ -5705,7 +5711,7 @@ def overheaddf_tar(df, alpha=1,**kwargs):
         ax.scatter(df[df.rewarded].target_x,df[df.rewarded].target_y, c='k',alpha=alpha, edgecolors='none',marker='.', s=9, lw=1,label='rewarded')
         ax.scatter(df[~df.rewarded].target_x,df[~df.rewarded].target_y, c=[1,0.5,0.5],alpha=alpha,edgecolors='none', marker='.', s=9, lw=1,label='unrewarded')
         ax.legend(loc='upper right', bbox_to_anchor=(0,0))
-        quicksave('all tar overhead')
+        # quicksave('all tar overhead')
 
 
 def overheaddf_path(df,indls, alpha=0.5,**kwargs):
@@ -5734,7 +5740,7 @@ def overheaddf_path(df,indls, alpha=0.5,**kwargs):
 
         for trial_i in indls:
             ax.plot(df.iloc[trial_i].pos_x,df.iloc[trial_i].pos_y,c=pathcolor, lw=0.1, ls='-', alpha=alpha)
-        quicksave('all trial path')
+        # quicksave('all trial path')
 
 
 def conditional_cov(covyy,covxx, covxy):

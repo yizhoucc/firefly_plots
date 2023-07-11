@@ -191,7 +191,7 @@ for dist,taskgain,tasknoise in possible_phi:
 
 # save for later use
 import pickle
-with open('/data/transformer_data', 'wb+') as handle:
+with open(datapath/'transformer_data', 'wb+') as handle:
     pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 

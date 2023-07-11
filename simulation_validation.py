@@ -30,9 +30,9 @@ agent=agent_.actor.mu.cpu()
 inv_file='inv0325_0325simulationpert'
 datafile='0325simulationpert'
 
-with open(Path('/data/simulation/inv')/inv_file,'rb') as f:
+with open(Path(datapath/'simulation/inv')/inv_file,'rb') as f:
     log=pickle.load(f)[:6]
-with open(Path('/data/simulation')/datafile, 'rb') as f:
+with open(Path(datapath/'simulation')/datafile, 'rb') as f:
     states, actions, tasks, groundtruth = pickle.load(f)
 
 
@@ -201,10 +201,10 @@ for i,u in enumerate(xrange):
 # background_data=np.array(Z).reshape(npixel,npixel)
 # notify('background done')
 
-# with open('/data/simulation/bg/{}_{}'.format(inv_file,note), 'wb+') as f:
+# with open(datapath/'simulation/bg/{}_{}'.format(inv_file,note), 'wb+') as f:
 #         pickle.dump((npixel,Z), f, protocol=pickle.HIGHEST_PROTOCOL)
 
-with open('/data/simulation/bg/{}_{}'.format(inv_file,note), 'rb+') as f:
+with open(datapath/'simulation/bg/{}_{}'.format(inv_file,note), 'rb+') as f:
         npixel, Z=pickle.load(f)
 
 background_data=np.zeros((npixel,npixel))

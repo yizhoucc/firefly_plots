@@ -5,7 +5,6 @@ from plot_ult import *
 from scipy import stats 
 from sklearn import svm
 import matplotlib
-from playsound import playsound
 import matplotlib.pyplot as plt
 from sklearn import svm
 import numpy as np
@@ -51,7 +50,7 @@ agent=agent_.actor.mu.cpu()
 # ASD questionaire data (SCQ)----------------------------------------------
 # fit to the most seperatble axis from svm
 
-scqdf=pd.read_csv('/data/human/Demosgraphics.csv')
+scqdf=pd.read_csv(datapath/'human/Demosgraphics.csv')
 
 asdscqdata={}
 
@@ -75,17 +74,17 @@ with initiate_plot(2,2,300) as fig:
 
 numhsub,numasub=25,14
 foldername='persub1cont'
-logs={'a':'/data/human/fixragroup','h':'/data/human/clusterpaperhgroup'}
+logs={'a':datapath/'human/fixragroup','h':datapath/'human/clusterpaperhgroup'}
 
 invres={'a':[],'h':[]}
 for isub in range(numhsub):
     dataname="hsub{}".format(str(isub))
-    savename=Path("/data/human/{}".format(foldername))/"invhsub{}".format(str(isub))
+    savename=Path(datapath/"human/{}".format(foldername))/"invhsub{}".format(str(isub))
     if savename.is_file():
         invres['h'].append(process_inv(savename,ind=31, usingbest=True))
 for isub in range(numasub):
     dataname="asub{}".format(str(isub))
-    savename=Path("/data/human/{}".format(foldername))/"invasub{}".format(str(isub))
+    savename=Path(datapath/"human/{}".format(foldername))/"invasub{}".format(str(isub))
     if savename.is_file():
         invres['a'].append(process_inv(savename,ind=31, usingbest=True))
 

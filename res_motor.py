@@ -6,7 +6,6 @@ from plot_ult import *
 from scipy import stats 
 from sklearn import svm
 import matplotlib
-from playsound import playsound
 import matplotlib.pyplot as plt
 from sklearn import svm
 import numpy as np
@@ -54,9 +53,9 @@ agent=agent_.actor.mu.cpu()
 
 
 # frequency of action changes ------------------------------
-with open('/data/human/woagroup','rb') as f:
+with open(datapath/'human/woagroup','rb') as f:
     _,aactions,_=pickle.load(f)
-with open('/data/human/wohgroup','rb') as f:
+with open(datapath/'human/wohgroup','rb') as f:
     _,hactions,_=pickle.load(f)
 
 atmp=[ np.diff( np.linalg.norm(np.array(a), axis=1) ) for a in aactions]
@@ -87,9 +86,9 @@ with initiate_plot(3,2, 300) as f:
 
 
 # frequency of action changes, angular only ------------------------------
-with open('/data/human/woagroup','rb') as f:
+with open(datapath/'human/woagroup','rb') as f:
     _,aactions,_=pickle.load(f)
-with open('/data/human/wohgroup','rb') as f:
+with open(datapath/'human/wohgroup','rb') as f:
     _,hactions,_=pickle.load(f)
 
 atmp=[ (np.power(relu(np.diff(np.array(a)[:,1], axis=0)),2)) for a in aactions]
@@ -287,15 +286,15 @@ parttrainfolder='persub3of5dp'
 for invtag in ['h','a']:
     for isub in range(numhsub):
         thesub="{}sub{}".format(invtag,str(isub))
-        evalname=Path("/data/human/{}/evaltrain_inv{}sub{}".format(parttrainfolder,invtag,str(isub)))
-        fullinverseres=Path("/data/human/{}".format(fulltrainfolder))/"inv{}sub{}".format(invtag,str(isub))
-        partinverseres=Path("/data/human/{}".format(parttrainfolder))/"inv{}sub{}".format(invtag,str(isub))
+        evalname=Path(datapath/"human/{}/evaltrain_inv{}sub{}".format(parttrainfolder,invtag,str(isub)))
+        fullinverseres=Path(datapath/"human/{}".format(fulltrainfolder))/"inv{}sub{}".format(invtag,str(isub))
+        partinverseres=Path(datapath/"human/{}".format(parttrainfolder))/"inv{}sub{}".format(invtag,str(isub))
         # load inv res
         if fullinverseres.is_file():
             asd_data_set['res'+thesub]=process_inv(fullinverseres, usingbest=True, removegr=True)
         # load data
-        if Path('/data/human/{}'.format(thesub)).is_file():
-            with open('/data/human/{}'.format(thesub), 'rb') as f:
+        if Path(datapath/'human/{}'.format(thesub)).is_file():
+            with open(datapath/'human/{}'.format(thesub), 'rb') as f:
                 states, actions, tasks = pickle.load(f)
             print(len(states))
             asd_data_set['data'+thesub]=states, actions, tasks
