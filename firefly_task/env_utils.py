@@ -45,8 +45,8 @@ def is_pos_def(x):
             print(torch.linalg.eig(x))
     else:
         # x = x.detach().numpy()
-        # yes=np.all(np.linalg.eigvalsh(x) >= 0)
-        yes=torch.all(torch.linalg.eig(x)[0] >= torch.tensor([0.]))
+        yes=np.all(np.linalg.eigvalsh(x) >= 0)
+        # yes=torch.all(torch.linalg.eig(x)[0] >= torch.tensor([0.]))
         if not yes:
             print(torch.linalg.eig(x))
 

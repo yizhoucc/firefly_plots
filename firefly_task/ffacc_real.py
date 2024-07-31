@@ -697,7 +697,6 @@ class Simple1d(gym.Env, torch.nn.Module):
         return b, P
 
 
-class FireflyTrue1d_real(gym.Env, torch.nn.Module): 
 
     def __init__(self,arg=None,kwargs=None):
         super(FireflyTrue1d_real, self).__init__()

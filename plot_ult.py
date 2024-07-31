@@ -5597,15 +5597,17 @@ def ovbystate():
 
 
 def get_ci(log, low=5, high=95, threshold=2,ind=-1):
-    res=[l[2] for l in log[:ind//threshold]]
+    res=[l[2] for l in log[:ind//threshold+1]]
     mean=log[ind][0]._mean
     allsamples=[]
     for r in res:
         for point in r:
             allsamples.append([point[1],point[0]])
     allsamples.sort(key=lambda x: x[0])
-    aroundsolution=allsamples[:ind//threshold]
+    aroundsolution=allsamples[:ind//threshold+1]
     aroundsolution.sort(key=lambda x: x[0])
+    # print('b',ind, threshold, len(log), ind//threshold)
+    # print(len(res), len(allsamples))
     alltheta=np.vstack([x[1] for x in aroundsolution])
 
     lower_ci=[np.percentile(alltheta[:,i],low) for i in range(alltheta.shape[1])]
@@ -6037,6 +6039,7 @@ def npsummary(nparray):
     print("n samples ", len(nparray))
     print("mean ", np.mean(nparray))
     print("std ", np.std(nparray))
+    print("sem ", np.std(nparray)/np.sqrt(len(nparray)))
     print("med ", np.median(nparray))
     print("range ", np.min(nparray),np.max(nparray))
 
