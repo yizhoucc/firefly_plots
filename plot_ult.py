@@ -203,6 +203,14 @@ datafolder=config['Datafolder']['data']
 datapath=Path(datafolder)
 
 
+
+def plot_best_fit(x,y, ax, color='black', **kwarg):
+    slope, intercept = np.polyfit(x,y, 1,**kwarg)
+    best_fit_line = slope * x + intercept
+    ax.plot(x, best_fit_line, color=color)
+    return slope
+
+
 def hex2rgb(hexstr):
     if hexstr[0] =='#':
         hexstr=hexstr.lstrip('#')
@@ -5772,14 +5780,14 @@ def process_inv(res, removegr=True, ci=5,ind=-1,usingbest=False):
     # get final theta and cov 
     if type(res) == str:
         res=Path(res)
-    print(res)
+    # print(res)
     with open(res, 'rb') as f:
         log = pickle.load(f)
     if ind>=len(log): ind=-1
     elif ind<=-len(log): ind=1
     if usingbest:
         ind= np.argmin([np.mean([l[1] for l in eachlog[2]]) for eachlog in log[:ind]])
-    print('using ind: ',ind, 'final logll : ', np.mean([l[1] for l in log[ind][2]]) )
+    # print('using ind: ',ind, 'final logll : ', np.mean([l[1] for l in log[ind][2]]) )
     finalcov=torch.tensor(log[ind][0]._C).float()
     finaltheta=torch.tensor(log[ind][0]._mean).view(-1,1)
     theta=torch.cat([finaltheta[:6],finaltheta[-4:]])
@@ -6123,7 +6131,7 @@ def loadmat(filename,key='subjects'):
     def _check_keys(data):
         res=[]
         for d in data:
-            print(d,type(d))
+            # print(d,type(d))
             if isinstance(d, spio.matlab.mio5_params.mat_struct):
                 d = _todict(d)
             res.append(d)
